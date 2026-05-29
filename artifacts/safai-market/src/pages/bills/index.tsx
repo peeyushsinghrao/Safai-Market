@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useListBills } from "@workspace/api-client-react";
 import { Receipt, Search, Printer, ChevronRight, Calendar, Share2, X, MessageCircle, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -10,13 +11,14 @@ import { formatCurrency, formatDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { printReceipt } from "@/lib/receipt";
 import PageHeader from "@/components/page-header";
+import { useSettingsStore } from "@/stores/settings";
 
-function generateShareText(bill: any): string {
+function generateShareText(bill: any, storeName: string): string {
   const items = (bill.items || [])
     .map((i: any) => `${i.productName} × ${i.quantity} — ${formatCurrency(i.quantity * Number(i.unitPrice))}`)
     .join("\n");
   const lines = [
-    `*Bill from Anupurna Traders*`,
+    `*Bill from ${storeName}*`,
     `Bill No: #${bill.billNumber}`,
     `Date: ${new Date(bill.createdAt).toLocaleDateString("en-IN")}`,
     bill.customerName ? `Customer: ${bill.customerName}` : "",
@@ -33,8 +35,8 @@ function generateShareText(bill: any): string {
   return lines;
 }
 
-function ShareSheet({ bill, onClose }: { bill: any; onClose: () => void }) {
-  const text = generateShareText(bill);
+function ShareSheet({ bill, storeName, onClose }: { bill: any; storeName: string; onClose: () => void }) {
+  const text = generateShareText(bill, storeName);
   const encoded = encodeURIComponent(text);
   const phone = bill.customerPhone?.replace(/\D/g, "");
 
@@ -50,7 +52,7 @@ function ShareSheet({ bill, onClose }: { bill: any; onClose: () => void }) {
   };
 
   const shareViaEmail = () => {
-    const subject = encodeURIComponent(`Bill from Anupurna Traders — #${bill.billNumber}`);
+    const subject = encodeURIComponent(`Bill from ${storeName} — #${bill.billNumber}`);
     const to = bill.customerEmail ? encodeURIComponent(bill.customerEmail) : "";
     window.open(`mailto:${to}?subject=${subject}&body=${encoded}`, "_blank");
   };
@@ -119,6 +121,9 @@ function ShareSheet({ bill, onClose }: { bill: any; onClose: () => void }) {
 export default function BillsHistory() {
   const [search, setSearch] = useState("");
   const [shareTarget, setShareTarget] = useState<any>(null);
+  const [, setLocation] = useLocation();
+  const { settings } = useSettingsStore();
+  const storeName = settings.storeName;
   const { data: bills, isLoading } = useListBills();
 
   const filtered = bills?.filter(b => {
@@ -132,6 +137,7 @@ export default function BillsHistory() {
   const handleReprint = (bill: any) => {
     const now = new Date(bill.createdAt);
     printReceipt({
+      storeName,
       billNumber: bill.billNumber,
       date: now.toLocaleDateString("en-IN"),
       time: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
@@ -271,6 +277,7 @@ export default function BillsHistory() {
                       variant="ghost"
                       size="sm"
                       className="flex-1 h-9 rounded-none text-xs text-muted-foreground gap-1.5 hover:bg-muted/50"
+                      onClick={() => setLocation(`/bills/${b.id}`)}
                     >
                       View
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -284,7 +291,7 @@ export default function BillsHistory() {
       </div>
 
       {shareTarget && (
-        <ShareSheet bill={shareTarget} onClose={() => setShareTarget(null)} />
+        <ShareSheet bill={shareTarget} storeName={storeName} onClose={() => setShareTarget(null)} />
       )}
     </div>
   );

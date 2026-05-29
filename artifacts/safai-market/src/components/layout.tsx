@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { Home, Package, Receipt, Users, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSettingsStore } from "@/stores/settings";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,11 +18,15 @@ const navItems = [
 
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
+  const { settings } = useSettingsStore();
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-background">
       <header className="sticky top-0 z-40 w-full border-b bg-primary text-primary-foreground h-14 flex items-center px-4 shadow-sm">
-        <h1 className="font-bold text-lg tracking-tight">Safai Market</h1>
+        <div className="flex flex-col">
+          <h1 className="font-bold text-base leading-tight tracking-tight">{settings.storeName}</h1>
+          <p className="text-[10px] text-primary-foreground/60 leading-tight">Safai Market</p>
+        </div>
       </header>
       
       <main className="flex-1 pb-16 overflow-y-auto">

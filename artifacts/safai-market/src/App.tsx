@@ -9,6 +9,7 @@ import Home from "./pages/home";
 import ProductsList from "./pages/products/index";
 import ProductNew from "./pages/products/new";
 import ProductDetail from "./pages/products/detail";
+import ProductEdit from "./pages/products/edit";
 import Billing from "./pages/billing/index";
 import CustomersList from "./pages/customers/index";
 import CustomerNew from "./pages/customers/new";
@@ -26,6 +27,9 @@ import StockMovements from "./pages/stock-movements/index";
 import MoreMenu from "./pages/more/index";
 import ProfitReports from "./pages/profit/index";
 import BillsHistory from "./pages/bills/index";
+import BillDetail from "./pages/bills/detail";
+import CustomerEdit from "./pages/customers/edit";
+import StoreSettings from "./pages/settings/store";
 import BundlesList from "./pages/bundles/index";
 import BundleNew from "./pages/bundles/new";
 import BundleDetail from "./pages/bundles/detail";
@@ -36,6 +40,7 @@ const HomePage = () => <Layout><Home /></Layout>;
 const ProductsListPage = () => <Layout><ProductsList /></Layout>;
 const ProductNewPage = () => <Layout><ProductNew /></Layout>;
 const ProductDetailPage = () => <Layout><ProductDetail /></Layout>;
+const ProductEditPage = () => <Layout><ProductEdit /></Layout>;
 const BillingPage = () => <Layout><Billing /></Layout>;
 const CustomersListPage = () => <Layout><CustomersList /></Layout>;
 const CustomerNewPage = () => <Layout><CustomerNew /></Layout>;
@@ -53,6 +58,9 @@ const StockMovementsPage = () => <Layout><StockMovements /></Layout>;
 const MoreMenuPage = () => <Layout><MoreMenu /></Layout>;
 const ProfitReportsPage = () => <Layout><ProfitReports /></Layout>;
 const BillsHistoryPage = () => <Layout><BillsHistory /></Layout>;
+const BillDetailPage = () => <BillDetail />;
+const CustomerEditPage = () => <Layout><CustomerEdit /></Layout>;
+const StoreSettingsPage = () => <Layout><StoreSettings /></Layout>;
 const BundlesListPage = () => <Layout><BundlesList /></Layout>;
 const BundleNewPage = () => <Layout><BundleNew /></Layout>;
 const BundleDetailPage = () => <Layout><BundleDetail /></Layout>;
@@ -65,12 +73,14 @@ function Router() {
 
       <Route path="/products" component={ProductsListPage} />
       <Route path="/products/new" component={ProductNewPage} />
+      <Route path="/products/:id/edit" component={ProductEditPage} />
       <Route path="/products/:id" component={ProductDetailPage} />
 
       <Route path="/billing" component={BillingPage} />
 
       <Route path="/customers" component={CustomersListPage} />
       <Route path="/customers/new" component={CustomerNewPage} />
+      <Route path="/customers/:id/edit" component={CustomerEditPage} />
       <Route path="/customers/:id" component={CustomerDetailPage} />
 
       <Route path="/suppliers" component={SuppliersListPage} />
@@ -87,9 +97,12 @@ function Router() {
       <Route path="/low-stock" component={LowStockPage} />
       <Route path="/stock-movements" component={StockMovementsPage} />
 
+      <Route path="/settings/store" component={StoreSettingsPage} />
+
       <Route path="/more" component={MoreMenuPage} />
       <Route path="/profit" component={ProfitReportsPage} />
       <Route path="/bills" component={BillsHistoryPage} />
+      <Route path="/bills/:id" component={BillDetailPage} />
       <Route path="/bundles" component={BundlesListPage} />
       <Route path="/bundles/new" component={BundleNewPage} />
       <Route path="/bundles/:id" component={BundleDetailPage} />

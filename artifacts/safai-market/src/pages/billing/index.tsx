@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSettingsStore } from "@/stores/settings";
 import {
   Search, X, ShoppingCart, Plus, Minus, Trash2,
   CheckCircle2, TrendingUp, AlertTriangle, Printer,
@@ -680,9 +681,13 @@ function BillSuccessScreen({
   onNewBill: () => void;
   onHome: () => void;
 }) {
+  const { settings } = useSettingsStore();
+  const storeName = settings.storeName;
+
   const handlePrint = () => {
     const now = new Date();
     printReceipt({
+      storeName,
       billNumber: bill.billNumber,
       date: now.toLocaleDateString("en-IN"),
       time: now.toLocaleTimeString("en-IN", {
@@ -703,7 +708,7 @@ function BillSuccessScreen({
 
   const handleShare = () => {
     const lines = [
-      `*Bill from Anupurna Traders*`,
+      `*Bill from ${storeName}*`,
       `Bill No: ${bill.billNumber}`,
       ``,
       ...bill.items.map(
@@ -843,7 +848,7 @@ export default function Billing() {
   const filteredProducts = useMemo(() => {
     if (debouncedSearch.length >= 2) return activeProducts;
     if (activeCategory === "all") return activeProducts;
-    return activeProducts.filter((p) => p.category === activeCategory);
+    return activeProducts.filter((p) => p.categoryName === activeCategory);
   }, [activeProducts, activeCategory, debouncedSearch]);
 
   // FG3: External barcode scanner support (keyboard wedge / USB scanner mode)

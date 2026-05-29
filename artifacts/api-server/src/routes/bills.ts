@@ -38,6 +38,7 @@ router.get("/bills", async (req, res): Promise<void> => {
       upiAmount: billsTable.upiAmount,
       udhaarAmount: billsTable.udhaarAmount,
       discountAmount: billsTable.discountAmount,
+      estimatedProfit: billsTable.estimatedProfit,
       status: billsTable.status,
       notes: billsTable.notes,
       createdAt: billsTable.createdAt,
@@ -78,7 +79,7 @@ router.post("/bills", async (req, res): Promise<void> => {
 
   const { items, customerId, totalAmount, cashAmount, upiAmount, udhaarAmount, discountAmount, notes } = parsed.data;
 
-  // Validate stock for all items
+  // Pre-validate stock BEFORE starting transaction (fast fail without holding a transaction lock)
   for (const item of items) {
     const [product] = await db
       .select({ currentStock: productsTable.currentStock, name: productsTable.name })
@@ -103,91 +104,101 @@ router.post("/bills", async (req, res): Promise<void> => {
     customerName = customer?.name ?? null;
   }
 
-  // Create bill
-  const [bill] = await db.insert(billsTable).values({
-    billNumber: generateBillNumber(),
-    customerId: customerId ?? null,
-    customerName,
-    totalAmount: String(totalAmount),
-    cashAmount: String(cashAmount),
-    upiAmount: String(upiAmount),
-    udhaarAmount: String(udhaarAmount),
-    discountAmount: String(discountAmount ?? 0),
-    notes: notes ?? null,
-  }).returning();
+  try {
+    // Wrap everything in a single atomic transaction
+    const result = await db.transaction(async (tx) => {
+      // Create bill
+      const [bill] = await tx.insert(billsTable).values({
+        billNumber: generateBillNumber(),
+        customerId: customerId ?? null,
+        customerName,
+        totalAmount: String(totalAmount),
+        cashAmount: String(cashAmount),
+        upiAmount: String(upiAmount),
+        udhaarAmount: String(udhaarAmount),
+        discountAmount: String(discountAmount ?? 0),
+        notes: notes ?? null,
+      }).returning();
 
-  // Insert items, update stock, log movements
-  let totalEstimatedProfit = 0;
-  for (const item of items) {
-    const [product] = await db.select().from(productsTable).where(eq(productsTable.id, item.productId));
-    const stockBefore = Number(product!.currentStock);
-    const stockAfter = stockBefore - Number(item.quantity);
-    const totalPrice = Number(item.quantity) * Number(item.unitPrice) - Number(item.discountAmount ?? 0);
+      // Insert items, update stock, log movements
+      let totalEstimatedProfit = 0;
+      for (const item of items) {
+        const [product] = await tx.select().from(productsTable).where(eq(productsTable.id, item.productId));
+        const stockBefore = Number(product!.currentStock);
+        const stockAfter = stockBefore - Number(item.quantity);
+        const totalPrice = Number(item.quantity) * Number(item.unitPrice) - Number(item.discountAmount ?? 0);
 
-    const buyPriceSnapshot = product!.buyPrice != null ? Number(product!.buyPrice) : null;
-    let profitAmount: number | null = null;
-    if (buyPriceSnapshot != null) {
-      profitAmount = (Number(item.unitPrice) - buyPriceSnapshot) * Number(item.quantity) - Number(item.discountAmount ?? 0);
-      totalEstimatedProfit += profitAmount;
-    }
+        const buyPriceSnapshot = product!.buyPrice != null ? Number(product!.buyPrice) : null;
+        let profitAmount: number | null = null;
+        if (buyPriceSnapshot != null) {
+          profitAmount = (Number(item.unitPrice) - buyPriceSnapshot) * Number(item.quantity) - Number(item.discountAmount ?? 0);
+          totalEstimatedProfit += profitAmount;
+        }
 
-    await db.insert(billItemsTable).values({
-      billId: bill.id,
-      productId: item.productId,
-      productName: product!.name,
-      quantity: String(item.quantity),
-      unitPrice: String(item.unitPrice),
-      totalPrice: String(totalPrice),
-      discountAmount: String(item.discountAmount ?? 0),
-      buyPriceSnapshot: buyPriceSnapshot != null ? String(buyPriceSnapshot) : null,
-      profitAmount: profitAmount != null ? String(profitAmount) : null,
+        await tx.insert(billItemsTable).values({
+          billId: bill.id,
+          productId: item.productId,
+          productName: product!.name,
+          quantity: String(item.quantity),
+          unitPrice: String(item.unitPrice),
+          totalPrice: String(totalPrice),
+          discountAmount: String(item.discountAmount ?? 0),
+          buyPriceSnapshot: buyPriceSnapshot != null ? String(buyPriceSnapshot) : null,
+          profitAmount: profitAmount != null ? String(profitAmount) : null,
+        });
+
+        await tx.update(productsTable)
+          .set({ currentStock: String(stockAfter) })
+          .where(eq(productsTable.id, item.productId));
+
+        await tx.insert(stockMovementsTable).values({
+          productId: item.productId,
+          productName: product!.name,
+          movementType: "sale",
+          quantity: String(-Number(item.quantity)),
+          stockBefore: String(stockBefore),
+          stockAfter: String(stockAfter),
+          referenceId: bill.id,
+          referenceType: "bill",
+        });
+      }
+
+      // If udhaar, update customer balance
+      if (udhaarAmount && Number(udhaarAmount) > 0 && customerId) {
+        const [customer] = await tx.select().from(customersTable).where(eq(customersTable.id, customerId));
+        const newBalance = Number(customer!.udhaarBalance) + Number(udhaarAmount);
+        await tx.update(customersTable).set({ udhaarBalance: String(newBalance) }).where(eq(customersTable.id, customerId));
+        await tx.insert(udhaarLedgerTable).values({
+          customerId,
+          entryType: "debit",
+          amount: String(udhaarAmount),
+          balanceAfter: String(newBalance),
+          description: `Bill ${bill.billNumber}`,
+          billId: bill.id,
+        });
+      }
+
+      // Update bill with computed estimated profit
+      const [updatedBill] = await tx
+        .update(billsTable)
+        .set({ estimatedProfit: String(totalEstimatedProfit) })
+        .where(eq(billsTable.id, bill.id))
+        .returning();
+
+      await tx.insert(activityLogTable).values({
+        eventType: "bill_created",
+        description: `Bill ${bill.billNumber} - ₹${totalAmount}${customerName ? ` (${customerName})` : ""}`,
+        amount: String(totalAmount),
+      });
+
+      return { ...updatedBill, itemCount: items.length };
     });
 
-    await db.update(productsTable)
-      .set({ currentStock: String(stockAfter) })
-      .where(eq(productsTable.id, item.productId));
-
-    await db.insert(stockMovementsTable).values({
-      productId: item.productId,
-      productName: product!.name,
-      movementType: "sale",
-      quantity: String(-Number(item.quantity)),
-      stockBefore: String(stockBefore),
-      stockAfter: String(stockAfter),
-      referenceId: bill.id,
-      referenceType: "bill",
-    });
+    res.status(201).json(result);
+  } catch (err: any) {
+    console.error("Bill creation failed:", err);
+    res.status(500).json({ error: "Bill creation failed. Please try again.", detail: err?.message });
   }
-
-  // If udhaar, update customer balance
-  if (udhaarAmount && Number(udhaarAmount) > 0 && customerId) {
-    const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, customerId));
-    const newBalance = Number(customer!.udhaarBalance) + Number(udhaarAmount);
-    await db.update(customersTable).set({ udhaarBalance: String(newBalance) }).where(eq(customersTable.id, customerId));
-    await db.insert(udhaarLedgerTable).values({
-      customerId,
-      entryType: "debit",
-      amount: String(udhaarAmount),
-      balanceAfter: String(newBalance),
-      description: `Bill ${bill.billNumber}`,
-      billId: bill.id,
-    });
-  }
-
-  // Update bill with computed estimated profit
-  const [updatedBill] = await db
-    .update(billsTable)
-    .set({ estimatedProfit: String(totalEstimatedProfit) })
-    .where(eq(billsTable.id, bill.id))
-    .returning();
-
-  await db.insert(activityLogTable).values({
-    eventType: "bill_created",
-    description: `Bill ${bill.billNumber} - ₹${totalAmount}${customerName ? ` (${customerName})` : ""}`,
-    amount: String(totalAmount),
-  });
-
-  res.status(201).json({ ...updatedBill, itemCount: items.length });
 });
 
 router.get("/bills/:id", async (req, res): Promise<void> => {
@@ -237,57 +248,66 @@ router.post("/bills/:id/cancel", async (req, res): Promise<void> => {
 
   const items = await db.select().from(billItemsTable).where(eq(billItemsTable.billId, bill.id));
 
-  // Restore stock for each item
-  for (const item of items) {
-    const [product] = await db.select().from(productsTable).where(eq(productsTable.id, item.productId));
-    if (product) {
-      const stockBefore = Number(product.currentStock);
-      const stockAfter = stockBefore + Number(item.quantity);
-      await db.update(productsTable).set({ currentStock: String(stockAfter) }).where(eq(productsTable.id, item.productId));
-      await db.insert(stockMovementsTable).values({
-        productId: item.productId,
-        productName: item.productName,
-        movementType: "return",
-        quantity: item.quantity,
-        stockBefore: String(stockBefore),
-        stockAfter: String(stockAfter),
-        referenceId: bill.id,
-        referenceType: "bill_cancel",
-        reason: `Bill ${bill.billNumber} cancelled`,
+  try {
+    const result = await db.transaction(async (tx) => {
+      // Restore stock for each item
+      for (const item of items) {
+        const [product] = await tx.select().from(productsTable).where(eq(productsTable.id, item.productId));
+        if (product) {
+          const stockBefore = Number(product.currentStock);
+          const stockAfter = stockBefore + Number(item.quantity);
+          await tx.update(productsTable).set({ currentStock: String(stockAfter) }).where(eq(productsTable.id, item.productId));
+          await tx.insert(stockMovementsTable).values({
+            productId: item.productId,
+            productName: item.productName,
+            movementType: "return",
+            quantity: item.quantity,
+            stockBefore: String(stockBefore),
+            stockAfter: String(stockAfter),
+            referenceId: bill.id,
+            referenceType: "bill_cancel",
+            reason: `Bill ${bill.billNumber} cancelled`,
+          });
+        }
+      }
+
+      // Reverse udhaar if applicable
+      if (Number(bill.udhaarAmount) > 0 && bill.customerId) {
+        const [customer] = await tx.select().from(customersTable).where(eq(customersTable.id, bill.customerId));
+        if (customer) {
+          const newBalance = Math.max(0, Number(customer.udhaarBalance) - Number(bill.udhaarAmount));
+          await tx.update(customersTable).set({ udhaarBalance: String(newBalance) }).where(eq(customersTable.id, bill.customerId));
+          await tx.insert(udhaarLedgerTable).values({
+            customerId: bill.customerId,
+            entryType: "credit",
+            amount: bill.udhaarAmount,
+            balanceAfter: String(newBalance),
+            description: `Bill ${bill.billNumber} cancelled`,
+            billId: bill.id,
+          });
+        }
+      }
+
+      const [updated] = await tx
+        .update(billsTable)
+        .set({ status: "cancelled", cancelReason: parsed.data.reason })
+        .where(eq(billsTable.id, params.data.id))
+        .returning();
+
+      await tx.insert(activityLogTable).values({
+        eventType: "bill_cancelled",
+        description: `Bill ${bill.billNumber} cancelled: ${parsed.data.reason}`,
+        amount: bill.totalAmount,
       });
-    }
+
+      return { ...updated, itemCount: items.length };
+    });
+
+    res.json(result);
+  } catch (err: any) {
+    console.error("Bill cancellation failed:", err);
+    res.status(500).json({ error: "Bill cancellation failed. Please try again.", detail: err?.message });
   }
-
-  // Reverse udhaar if applicable
-  if (Number(bill.udhaarAmount) > 0 && bill.customerId) {
-    const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, bill.customerId));
-    if (customer) {
-      const newBalance = Math.max(0, Number(customer.udhaarBalance) - Number(bill.udhaarAmount));
-      await db.update(customersTable).set({ udhaarBalance: String(newBalance) }).where(eq(customersTable.id, bill.customerId));
-      await db.insert(udhaarLedgerTable).values({
-        customerId: bill.customerId,
-        entryType: "credit",
-        amount: bill.udhaarAmount,
-        balanceAfter: String(newBalance),
-        description: `Bill ${bill.billNumber} cancelled`,
-        billId: bill.id,
-      });
-    }
-  }
-
-  const [updated] = await db
-    .update(billsTable)
-    .set({ status: "cancelled", cancelReason: parsed.data.reason })
-    .where(eq(billsTable.id, params.data.id))
-    .returning();
-
-  await db.insert(activityLogTable).values({
-    eventType: "bill_cancelled",
-    description: `Bill ${bill.billNumber} cancelled: ${parsed.data.reason}`,
-    amount: bill.totalAmount,
-  });
-
-  res.json({ ...updated, itemCount: items.length });
 });
 
 export default router;

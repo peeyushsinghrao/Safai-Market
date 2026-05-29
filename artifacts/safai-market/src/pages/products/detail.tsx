@@ -91,7 +91,7 @@ export default function ProductDetail() {
         title={product.name}
         backTo="/products"
         right={
-          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 h-9 w-9 rounded-xl" onClick={() => toast({ title: "Edit product (WIP)" })}>
+          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 h-9 w-9 rounded-xl" onClick={() => setLocation(`/products/${id}/edit`)}>
             <Edit className="w-4 h-4" />
           </Button>
         }

@@ -1,0 +1,732 @@
+# Implementation Plan Overview
+
+This project is a **Progressive Web App (PWA)** for a comprehensive multi-shop inventory and billing management system. The implementation is divided into 8 phases:
+
+1. **Phase 1**: Core Frontend Setup & Authentication Screens
+2. **Phase 2**: Main Application Screens & Navigation
+3. **Phase 3**: Product & Customer Management Screens
+4. **Phase 4**: Settings & Utility Screens
+5. **Phase 5**: Authentication & User Management
+6. **Phase 6**: Backend Integration - Database & Core APIs
+7. **Phase 7**: Advanced Features & Third-party Integrations
+8. **Phase 8**: Review, Testing & Code Optimization
+
+***
+
+## Phase 1: Core Frontend Setup & Authentication Screens
+
+### Objective
+
+Set up the foundational frontend architecture and implement authentication screens with proper routing and state management.
+
+### Tasks
+
+#### 1.1 Project Setup
+
+* Initialize Vite React TypeScript project
+* Configure Tailwind CSS with custom color palette and typography
+* Install required dependencies: React Router DOM, Zustand, React Context API
+* Set up PWA configuration with Workbox
+* Configure project structure with proper folder organization (`/src/components`, `/src/pages`, `/src/hooks`, `/src/store`, `/src/types`)
+
+#### 1.2 Design System Implementation
+
+* Create base Tailwind configuration with custom colors:
+    * Primary: #2563EB, Secondary: #64748B, Accent: #059669
+    * Error: #DC2626, Warning: #D97706, Background: #F8FAFC
+* Set up Inter font family for headings and body text
+* Configure JetBrains Mono for codes and numbers
+* Create reusable UI components: Button, Input, Card, Loading Spinner
+
+#### 1.3 Routing Setup
+
+* Configure React Router DOM with route protection
+* Implement route structure for all screens
+* Create layout components for authenticated and non-authenticated routes
+* Set up navigation guards for protected routes
+
+#### 1.4 State Management
+
+* Set up Zustand store for global state management
+* Create React Context for authentication state
+* Implement state persistence with localStorage
+* Create custom hooks for state management
+
+#### 1.5 Authentication Screens
+
+* **Login Screen (`/login`)**:
+    * Create responsive form with email/phone and password inputs
+    * Implement password visibility toggle
+    * Add "Remember me" checkbox and form validation
+    * Create loading states and error handling
+    * Style with mobile-first responsive design
+* **Register Screen (`/register`)**:
+    * Build registration form with shop and owner details
+    * Implement password strength indicator
+    * Add terms and conditions checkbox
+    * Create form validation with TypeScript types
+    * Implement navigation between login and register
+
+### Deliverables
+
+* Fully configured React TypeScript project with Vite and Tailwind CSS
+* Complete authentication screens with responsive design
+* Basic routing structure and state management
+* PWA configuration files
+* Reusable UI component library
+
+***
+
+## Phase 2: Main Application Screens & Navigation
+
+### Objective
+
+Implement the core application screens including dashboard, products, billing, and customers with bottom navigation and responsive design.
+
+### Tasks
+
+#### 2.1 Navigation Components
+
+* Create bottom navigation component for mobile with 5 tabs
+* Implement header component with shop selector and user menu
+* Build breadcrumb navigation for deep screens
+* Create floating action buttons for primary actions
+* Implement swipe gestures for mobile navigation
+
+#### 2.2 Dashboard/Home Screen (`/`)
+
+* Build header with shop selector dropdown and user menu
+* Create today's sales summary card with key metrics
+* Implement quick stats grid (total products, low stock alerts, pending orders)
+* Build recent bills list with quick action buttons
+* Create sales chart component with daily/weekly toggle
+* Implement low stock products widget
+* Add recent activities feed
+* Optimize for mobile-first responsive design
+
+#### 2.3 Products Screen (`/products`)
+
+* Create header with search bar and filter functionality
+* Implement category filter chips with horizontal scrolling
+* Build product grid/list toggle view
+* Create product cards with image, name, price, stock, and barcode display
+* Add edit/delete actions with hover/long-press interactions
+* Implement bulk actions toolbar for selected items
+* Add infinite scroll pagination
+* Create empty state with "Add first product" CTA
+
+#### 2.4 Billing Screen (`/billing`)
+
+* Build customer selection dropdown with quick add functionality
+* Create product search bar with barcode scan integration
+* Implement category filter tabs
+* Build product grid with quick add buttons
+* Create shopping cart sidebar (desktop) and bottom sheet (mobile)
+* Implement cart items list with quantity controls
+* Add subtotal and tax calculation displays
+* Create discount input field and payment method selector
+* Build recently sold products section
+
+#### 2.5 Customers Screen (`/customers`)
+
+* Create header with search bar and add customer button
+* Build customer list with avatar, name, phone, and last purchase info
+* Implement customer stats cards
+* Add search and filter options with sort dropdown
+* Create quick contact actions (call, message)
+* Implement infinite scroll pagination
+* Add empty state with add customer CTA
+
+### Deliverables
+
+* Fully functional navigation system
+* Complete dashboard with interactive widgets
+* Products screen with search, filter, and CRUD operations UI
+* Billing screen with cart functionality
+* Customers screen with contact management UI
+* Responsive design optimized for mobile and desktop
+
+***
+
+## Phase 3: Product & Customer Management Screens
+
+### Objective
+
+Implement detailed screens for adding/editing products and customers, along with checkout and success screens.
+
+### Tasks
+
+#### 3.1 Product Management Screens
+
+* **Add/Edit Product Screen (`/products/add`, `/products/edit/:id`)**:
+    * Create back button and save button in header
+    * Implement product image upload with camera/gallery options
+    * Build form fields: name, category, barcode, prices, stock, supplier
+    * Add profit margin calculation and display
+    * Create category dropdown with add new option
+    * Implement barcode input with scan button integration
+    * Add form validation with real-time feedback
+    * Create delete functionality for edit mode
+
+#### 3.2 Customer Management Screens
+
+* **Add/Edit Customer Screen (`/customers/add`, `/customers/edit/:id`)**:
+    * Build customer avatar upload functionality
+    * Create form fields: name, phone, email, address, customer type
+    * Implement phone number validation
+    * Add credit limit and notes fields
+    * Create status toggle (active/inactive)
+    * Add delete functionality for edit mode
+    * Implement form validation and error handling
+* **Customer Detail Screen (`/customers/:id`)**:
+    * Create customer profile header with avatar and contact info
+    * Build purchase history list with filtering
+    * Implement total spent and visit count statistics
+    * Add recent bills with quick action buttons
+    * Create contact action buttons (call, message, email)
+    * Build purchase analytics chart component
+    * Add favorite products list display
+
+#### 3.3 Checkout Flow Screens
+
+* **Cart/Checkout Screen (`/billing/checkout`)**:
+    * Build order summary header
+    * Create customer details card with edit options
+    * Implement line items list with price breakdown
+    * Add subtotal, tax, and discount calculations
+    * Create payment method selection component
+    * Implement payment amount input for cash payments
+    * Add change calculation display
+    * Create special instructions textarea
+    * Build confirm order button with validation
+* **Bill Success Screen (`/billing/success/:billId`)**:
+    * Create success animation with checkmark
+    * Display bill number and amount prominently
+    * Show customer details summary
+    * Build action buttons grid: view details, download PDF, share, print
+    * Add WhatsApp sharing integration
+    * Create "Create new bill" and "Duplicate bill" buttons
+    * Implement return to dashboard functionality
+
+#### 3.4 Bill Detail Screen (`/bills/:id`)
+
+* Create bill header with number, date, and customer info
+* Build line items table with products and prices
+* Display payment information and status
+* Implement total breakdown with tax details
+* Add action buttons (print, share, duplicate, void)
+* Create customer information card
+* Add payment history section
+* Implement related bills section
+
+### Deliverables
+
+* Complete product management system with add/edit functionality
+* Full customer management with detailed profiles
+* Functional checkout flow with payment processing UI
+* Bill management and viewing capabilities
+* Form validation and error handling throughout all screens
+
+***
+
+## Phase 4: Settings & Utility Screens
+
+### Objective
+
+Implement settings screens, reports, barcode scanner, and utility screens to complete the frontend application.
+
+### Tasks
+
+#### 4.1 Settings and Menu Screens
+
+* **More/Menu Screen (`/more`)**:
+    * Create user profile section with avatar and shop information
+    * Build settings menu items with proper icons and navigation
+    * Implement shop selector for multi-shop users
+    * Add logout functionality
+    * Display app version information
+    * Create organized menu structure
+* **Store Settings Screen (`/settings/store`)**:
+    * Build store information form (name, address, contact)
+    * Implement logo upload functionality
+    * Create business details section (GST, license numbers)
+    * Add operating hours settings
+    * Implement currency and tax configuration
+    * Create bill customization options
+    * Add default payment methods settings
+
+#### 4.2 Reports and Analytics
+
+* **Reports Screen (`/reports`)**:
+    * Create date range picker component
+    * Implement report type tabs (sales, inventory, profit, customer)
+    * Build key metrics cards with real-time data
+    * Create interactive charts and graphs using Chart.js or similar
+    * Add export options (PDF, CSV)
+    * Implement filter options (products, categories, customers)
+    * Create comparison periods toggle
+    * Build detailed data tables with sorting
+
+#### 4.3 Device Management
+
+* **Device Center Screen (`/settings/devices`)**:
+    * Create connected devices list
+    * Build printer configuration section
+    * Implement barcode scanner settings
+    * Add Bluetooth device pairing interface
+    * Create device status indicators
+    * Add test connection buttons
+    * Implement device-specific settings
+    * Create add device wizard
+
+#### 4.4 Barcode Scanner
+
+* **Barcode Scanner Screen (`/scanner`)**:
+    * Implement camera viewfinder with scanning overlay
+    * Add torch/flashlight toggle functionality
+    * Create manual barcode input option
+    * Build recently scanned items list
+    * Implement scanner mode toggle (add to cart, add product)
+    * Add cancel/close button functionality
+    * Create scanning instructions and help text
+    * Implement unknown barcode handling workflow
+
+#### 4.5 PWA Features
+
+* Configure service worker for offline functionality
+* Implement app installation prompt
+* Create offline notification system
+* Add background sync capabilities
+* Configure app manifest with proper icons and metadata
+* Implement push notification setup (for future use)
+
+### Deliverables
+
+* Complete settings and configuration screens
+* Functional reporting system with charts and analytics
+* Device management and printer integration UI
+* Barcode scanning functionality
+* Full PWA implementation with offline capabilities
+* Complete frontend application ready for backend integration
+
+***
+
+## Phase 5: Authentication & User Management
+
+### Objective
+
+Implement Supabase authentication system with user management, session handling, and security features.
+
+### Tasks
+
+#### 5.1 Supabase Authentication Setup
+
+* Set up Supabase project and obtain API keys
+* Configure Supabase client in React application
+* Install and configure @supabase/supabase-js
+* Set up environment variables for API keys
+* Configure authentication providers and settings
+
+#### 5.2 Authentication Implementation
+
+* **User Registration**:
+    * Implement email/password registration with Supabase Auth
+    * Create user profile creation in public.profiles table
+    * Add email verification workflow
+    * Implement shop creation during registration
+    * Set up user role assignment (shop owner, manager, employee)
+* **Login System**:
+    * Implement email/password login
+    * Add "Remember me" functionality with session persistence
+    * Create password reset functionality
+    * Implement login rate limiting and security measures
+* **Session Management**:
+    * Set up automatic token refresh
+    * Implement session persistence across browser sessions
+    * Create logout functionality with session cleanup
+    * Add session timeout handling
+
+#### 5.3 User Management System
+
+* **Profile Management**:
+    * Create user profile update functionality
+    * Implement avatar upload to Supabase Storage
+    * Add user preferences storage
+    * Create profile validation and error handling
+* **Multi-Shop User Support**:
+    * Implement shop switching for users with multiple shops
+    * Create shop invitation system
+    * Add user role management within shops
+    * Implement shop access permissions
+
+#### 5.4 Security Implementation
+
+* **Row Level Security (RLS)**:
+    * Set up RLS policies for all tables
+    * Implement shop-based data isolation
+    * Create user-based access control
+    * Add security policies for different user roles
+* **Authentication Guards**:
+    * Create route protection middleware
+    * Implement authentication state management
+    * Add permission-based component rendering
+    * Create secure API request handling
+
+### Deliverables
+
+* Fully functional Supabase authentication system
+* User registration and login with email verification
+* Session management with automatic refresh
+* Multi-shop user support with role-based access
+* Complete security implementation with RLS
+* Authentication guards and protected routes
+
+***
+
+## Phase 6: Backend Integration - Database & Core APIs
+
+### Objective
+
+Implement Supabase database schema, core APIs, and real-time functionality for shops, products, customers, and billing.
+
+### Tasks
+
+#### 6.1 Database Schema Design
+
+* **Core Tables Setup**:
+
+    ```sql
+    -- Shops table with multi-tenant support
+    CREATE TABLE shops (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL,
+      owner_id UUID REFERENCES auth.users(id),
+      address TEXT,
+      phone TEXT,
+      email TEXT,
+      gst_number TEXT,
+      logo_url TEXT,
+      settings JSONB DEFAULT '{}',
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    
+    -- Products table with barcode support
+    CREATE TABLE products (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      shop_id UUID REFERENCES shops(id),
+      name TEXT NOT NULL,
+      category TEXT,
+      barcode TEXT,
+      buy_price DECIMAL(10,2),
+      sell_price DECIMAL(10,2),
+      stock_quantity INTEGER DEFAULT 0,
+      min_stock_level INTEGER DEFAULT 5,
+      supplier TEXT,
+      description TEXT,
+      image_url TEXT,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    
+    -- Customers table
+    CREATE TABLE customers (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      shop_id UUID REFERENCES shops(id),
+      name TEXT NOT NULL,
+      phone TEXT,
+      email TEXT,
+      address TEXT,
+      customer_type TEXT DEFAULT 'regular',
+      credit_limit DECIMAL(10,2) DEFAULT 0,
+      notes TEXT,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    
+    -- Bills table
+    CREATE TABLE bills (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      shop_id UUID REFERENCES shops(id),
+      customer_id UUID REFERENCES customers(id),
+      bill_number TEXT UNIQUE NOT NULL,
+      subtotal DECIMAL(10,2),
+      tax_amount DECIMAL(10,2),
+      discount_amount DECIMAL(10,2),
+      total_amount DECIMAL(10,2),
+      payment_method TEXT,
+      payment_status TEXT DEFAULT 'paid',
+      notes TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    
+    -- Bill items table
+    CREATE TABLE bill_items (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      bill_id UUID REFERENCES bills(id),
+      product_id UUID REFERENCES products(id),
+      quantity INTEGER NOT NULL,
+      unit_price DECIMAL(10,2),
+      total_price DECIMAL(10,2),
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    ```
+
+#### 6.2 Row Level Security Policies
+
+* Implement RLS policies for shop-based data isolation
+* Create policies for user access control within shops
+* Set up policies for different user roles (owner, manager, employee)
+* Add security policies for read/write operations
+
+#### 6.3 Core API Implementation
+
+* **Shop Management APIs**:
+    * Create shop CRUD operations
+    * Implement shop switching functionality
+    * Add shop settings management
+    * Create shop user management
+* **Product Management APIs**:
+    * Build product CRUD operations with image upload
+    * Implement barcode search and validation
+    * Add category management
+    * Create stock management with alerts
+    * Implement bulk product operations
+* **Customer Management APIs**:
+    * Create customer CRUD operations
+    * Implement customer search and filtering
+    * Add purchase history tracking
+    * Create customer analytics
+
+#### 6.4 Real-time Functionality
+
+* Set up Supabase Realtime subscriptions
+* Implement real-time stock updates
+* Create real-time bill notifications
+* Add multi-device synchronization
+* Implement conflict resolution for concurrent edits
+
+### Deliverables
+
+* Complete database schema with all required tables
+* Row Level Security implementation for multi-tenant architecture
+* Core APIs for shop, product, and customer management
+* Real-time functionality with conflict resolution
+* Comprehensive indexing for performance optimization
+
+***
+
+## Phase 7: Advanced Features & Third-party Integrations
+
+### Objective
+
+Implement billing system, barcode integration, PDF generation, offline functionality, and third-party API integrations.
+
+### Tasks
+
+#### 7.1 Advanced Billing System
+
+* **Billing APIs**:
+    * Create billing session management
+    * Implement cart persistence and recovery
+    * Build checkout process with validation
+    * Add payment processing logic
+    * Create bill number generation system
+    * Implement duplicate bill prevention
+* **Bill Management**:
+    * Create bill history and search
+    * Implement bill void/cancel functionality
+    * Add bill modification capabilities
+    * Create recurring bill templates
+
+#### 7.2 Barcode Integration
+
+* **ZXing-js Implementation**:
+    * Set up barcode scanning with camera
+    * Implement multiple barcode format support
+    * Create unknown barcode handling workflow
+    * Add barcode generation for products
+    * Implement bulk scanning mode
+* **Hardware Integration**:
+    * Create USB barcode scanner support
+    * Implement Bluetooth scanner integration
+    * Add external scanner configuration
+    * Create scanner switching logic
+
+#### 7.3 PDF Generation & Printing
+
+* **PDF Bill Generation**:
+    * Implement jsPDF for bill generation
+    * Create customizable bill templates
+    * Add company branding to bills
+    * Implement PDF export functionality
+* **Printing System**:
+    * Set up browser Print API integration
+    * Create print queue management
+    * Implement thermal printer support
+    * Add print preview functionality
+
+#### 7.4 Sharing & Communication
+
+* **Web Share API**:
+    * Implement native sharing functionality
+    * Create WhatsApp integration for bill sharing
+    * Add email sharing capabilities
+    * Implement SMS sharing for bills
+
+#### 7.5 Offline-First Architecture
+
+* **IndexedDB Implementation**:
+    * Set up local data storage with Dexie.js
+    * Create offline data synchronization
+    * Implement conflict resolution
+    * Add background sync with service workers
+* **Offline Functionality**:
+    * Enable offline billing and inventory management
+    * Create offline data queuing
+    * Implement sync status indicators
+    * Add offline-first state management
+
+#### 7.6 Reports & Analytics
+
+* **Analytics Implementation**:
+    * Create sales analytics with Chart.js
+    * Implement profit margin calculations
+    * Build inventory analytics
+    * Add customer analytics and insights
+* **Export Functionality**:
+    * Implement CSV export for reports
+    * Create PDF report generation
+    * Add scheduled report generation
+    * Implement report sharing
+
+#### 7.7 Image Processing
+
+* **Supabase Storage Integration**:
+    * Set up image upload for products and users
+    * Implement image optimization with Canvas API
+    * Create image resizing and compression
+    * Add image validation and error handling
+
+### Deliverables
+
+* Complete billing system with payment processing
+* Fully functional barcode scanning and generation
+* PDF generation and printing capabilities
+* Offline-first architecture with synchronization
+* Analytics and reporting system
+* Image processing and storage management
+* Third-party integrations (WhatsApp, email, SMS)
+
+***
+
+## Phase 8: Review, Testing & Code Optimization
+
+### Objective
+
+Conduct comprehensive review of all implemented features, perform testing, optimize performance, and ensure production readiness.
+
+### Tasks
+
+#### 8.1 Feature Verification
+
+* **PRD Compliance Check**:
+    * Verify all core features are implemented correctly
+    * Test multi-shop management functionality
+    * Validate product management with barcode support
+    * Test advanced billing system with all payment methods
+    * Verify customer management and analytics
+    * Test printing and sharing capabilities
+    * Validate offline functionality and synchronization
+* **UI/UX Review**:
+    * Ensure design matches specified color palette and typography
+    * Verify mobile-first responsive design across all screens
+    * Test touch-optimized interactions
+    * Validate accessibility compliance (contrast ratios, keyboard navigation)
+    * Check loading states and skeleton screens
+
+#### 8.2 Security Audit
+
+* **Authentication Security**:
+    * Review authentication implementation for vulnerabilities
+    * Test session management and token refresh
+    * Verify password security and validation
+    * Check email verification workflow
+* **Data Security**:
+    * Audit Row Level Security policies
+    * Test data isolation between shops
+    * Verify user permission systems
+    * Check API endpoint security
+    * Validate input sanitization and validation
+
+#### 8.3 Performance Optimization
+
+* **Frontend Optimization**:
+    * Implement code splitting with React.lazy()
+    * Optimize bundle size with tree shaking
+    * Add image lazy loading and optimization
+    * Implement virtual scrolling for large lists
+    * Optimize re-renders with React.memo and useMemo
+* **Database Optimization**:
+    * Create proper indexes for frequently queried columns
+    * Optimize complex queries with query analysis
+    * Implement connection pooling
+    * Add caching strategies for static data
+* **PWA Optimization**:
+    * Optimize service worker caching strategies
+    * Implement efficient background sync
+    * Reduce app startup time
+    * Optimize offline storage usage
+
+#### 8.4 Testing Implementation
+
+* **Unit Testing**:
+    * Create unit tests for utility functions
+    * Test React components with React Testing Library
+    * Implement API endpoint tests
+    * Test state management logic
+* **Integration Testing**:
+    * Test complete user workflows
+    * Verify barcode scanning functionality
+    * Test offline/online synchronization
+    * Validate print and share functionality
+* **Cross-Platform Testing**:
+    * Test on multiple mobile devices (iOS, Android)
+    * Verify desktop browser compatibility
+    * Test PWA installation on different platforms
+    * Validate barcode scanner on various devices
+
+#### 8.5 Code Quality & Refactoring
+
+* **Code Review**:
+    * Implement consistent coding standards
+    * Remove code duplication
+    * Optimize component structure and reusability
+    * Add comprehensive TypeScript types
+* **Documentation**:
+    * Create API documentation
+    * Document component props and usage
+    * Add inline code comments
+    * Create deployment and maintenance guides
+
+#### 8.6 Production Preparation
+
+* **Environment Configuration**:
+    * Set up production environment variables
+    * Configure CDN for static assets
+    * Implement error tracking (Sentry integration)
+    * Set up monitoring and analytics
+* **Deployment Optimization**:
+    * Configure build optimization for production
+    * Implement automatic deployments
+    * Set up database migrations
+    * Create backup and recovery procedures
+
+### Deliverables
+
+* Fully tested and optimized application
+* Complete security audit with fixes implemented
+* Performance optimization with measurable improvements
+* Comprehensive test suite with good coverage
+* Production-ready deployment configuration
+* Complete documentation for maintenance and updates
+* Verified compliance with all PRD requirements

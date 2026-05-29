@@ -1,0 +1,616 @@
+# Safai Market - Product Requirements Document
+
+## 1\. Overview
+
+**App/Website Name:** Safai Market
+
+Safai Market is a comprehensive multi-shop inventory and billing management system designed for small to medium retail businesses. The application provides a complete solution for managing products, customers, billing, and shop operations with support for multiple stores under one unified platform. Built with a mobile-first approach, it combines powerful backend capabilities with an intuitive frontend that feels as simple as popular consumer apps like WhatsApp or PhonePe.
+
+The primary target audience includes shop owners, retail managers, and business operators who need efficient inventory management, quick billing processes, and comprehensive business insights. The application solves critical problems of manual inventory tracking, slow billing processes, lack of business insights, and the complexity of managing multiple shop locations from a single system.
+
+## 2\. Essential Core Features
+
+### Multi-Shop Management
+
+* Complete data isolation between different shops
+* Shop-specific products, customers, bills, and reports
+* Centralized dashboard for managing multiple locations
+* Shop switching capability for users managing multiple stores
+
+### Product Management
+
+* Add, edit, and delete products with comprehensive details
+* Category-based product organization and filtering
+* Stock management with low-stock alerts
+* Barcode support for products (optional)
+* Bulk product operations
+* Product image management
+* Supplier tracking and management
+
+### Advanced Billing System
+
+* Multi-product cart with unlimited items
+* Quick product search and selection
+* Barcode scanning for rapid billing
+* Multiple payment method support
+* Bill generation with PDF export
+* Bill history and management
+* Duplicate bill prevention
+* Cart persistence and recovery
+
+### Customer Management
+
+* Customer database with contact information
+* Purchase history tracking
+* Customer-specific billing
+* Customer search and filtering
+
+### Barcode Integration
+
+* Camera-based barcode scanning
+* Support for external barcode scanners (USB/Bluetooth)
+* Bulk scanning mode for inventory
+* Unknown barcode handling workflow
+* Internal barcode generation system
+* Barcode history tracking
+
+### Printing & Sharing
+
+* PDF bill generation
+* Browser-based printing
+* Bill sharing via WhatsApp, email, and other platforms
+* Customizable bill templates
+* Print queue management
+
+### Reporting & Analytics
+
+* Sales reports and analytics
+* Profit tracking and margins
+* Inventory reports
+* Customer analytics
+* Daily, weekly, monthly summaries
+* Export capabilities
+
+### Offline-First Architecture
+
+* IndexedDB for local data storage
+* Automatic sync when online
+* Offline billing and inventory management
+* Conflict resolution for multi-device usage
+* Background sync queuing
+
+### Device & Hardware Support
+
+* Printer configuration and management
+* Barcode scanner integration
+* Multi-device synchronization
+* Device-specific settings
+
+## 3\. Tech Stack
+
+### Front-End
+
+* **Framework:** React 18 with TypeScript
+* **Styling:** Tailwind CSS
+* **Build Tool:** Vite
+* **State Management:** React Context API with Zustand for complex state
+* **Routing:** React Router DOM
+* **PWA:** Workbox for service worker and offline capabilities
+
+### Back-End
+
+* **Database:** Supabase PostgreSQL
+* **Authentication:** Supabase Auth
+* **Real-time:** Supabase Realtime subscriptions
+* **Storage:** Supabase Storage for images and documents
+* **Edge Functions:** Supabase Edge Functions for complex business logic
+
+### APIs & Integrations
+
+* **PDF Generation:** jsPDF or React-PDF
+* **Barcode Processing:** ZXing-js for barcode scanning
+* **Image Processing:** Canvas API for image optimization
+* **Local Storage:** IndexedDB for offline capabilities
+* **Print API:** Browser Print API
+* **Share API:** Web Share API for native sharing
+
+### Additional Technical Requirements
+
+* Row Level Security (RLS) for multi-tenant architecture
+* Real-time synchronization across devices
+* Automatic database migrations
+* Comprehensive indexing for performance
+* Backup and restore capabilities
+
+## 4\. Design Preferences
+
+### Interface
+
+The design should embody simplicity and efficiency with a clean, modern interface that prioritizes functionality over decoration. The visual design should feel professional yet approachable, similar to successful business apps with clear visual hierarchy and intuitive navigation patterns.
+
+### Color Palette
+
+* **Primary:** #2563EB (Professional Blue)
+* **Secondary:** #64748B (Slate Gray)
+* **Accent:** #059669 (Success Green)
+* **Error:** #DC2626 (Red)
+* **Warning:** #D97706 (Orange)
+* **Background:** #F8FAFC (Light Gray)
+
+### Typography
+
+* **Headings:** Inter (700, 600, 500 weights)
+* **Body Text:** Inter (400, 500 weights)
+* **Monospace:** JetBrains Mono (for codes and numbers)
+
+### Additional Design Considerations
+
+* Mobile-first responsive design with touch-optimized interactions
+* High contrast ratios for accessibility
+* Consistent spacing using Tailwind's spacing scale
+* Subtle shadows and borders for depth without clutter
+* Loading states and skeleton screens for better perceived performance
+
+## 5\. All Screens/Pages
+
+### Authentication Screens
+
+#### Login Screen (`/login`)
+
+**UI Elements:**
+
+* Logo and app branding
+* Email/phone input field
+* Password input field with visibility toggle
+* "Remember me" checkbox
+* Login button (primary)
+* "Forgot password?" link
+* "Create account" link
+* Loading spinner during authentication
+
+**Navigation:**
+
+* Entry: Direct URL, logout redirect
+* Exit: Successful login → Dashboard, Create account → Register
+
+#### Register Screen (`/register`)
+
+**UI Elements:**
+
+* Logo and app branding
+* Shop name input field
+* Owner name input field
+* Email input field
+* Phone number input field
+* Password input field with strength indicator
+* Confirm password field
+* Terms and conditions checkbox
+* Register button (primary)
+* "Already have account?" link
+* Loading spinner during registration
+
+**Navigation:**
+
+* Entry: Login screen link, direct URL
+* Exit: Successful registration → Onboarding, Login link → Login screen
+
+### Main Application Screens
+
+#### Dashboard/Home Screen (`/`)
+
+**UI Elements:**
+
+* Header with shop selector dropdown and user menu
+* Today's sales summary card
+* Quick stats grid (total products, low stock alerts, pending orders)
+* Recent bills list with quick actions
+* Quick action buttons (New Bill, Add Product, Scan Barcode)
+* Sales chart (daily/weekly toggle)
+* Low stock products widget
+* Recent activities feed
+* Bottom navigation (mobile)
+
+**Navigation:**
+
+* Entry: Login success, bottom navigation
+* Exit: Navigation to any main section
+
+#### Products Screen (`/products`)
+
+**UI Elements:**
+
+* Header with search bar and filter button
+* Category filter chips (horizontally scrollable)
+* Add product floating action button
+* Product grid/list toggle
+* Product cards with image, name, price, stock, and barcode
+* Edit/delete actions on product hover/long-press
+* Bulk actions toolbar (when items selected)
+* Infinite scroll pagination
+* Empty state with "Add first product" CTA
+
+**Navigation:**
+
+* Entry: Bottom navigation, dashboard quick action
+* Exit: Product detail → Edit product, Add → Add product form
+
+#### Add/Edit Product Screen (`/products/add`, `/products/edit/:id`)
+
+**UI Elements:**
+
+* Back button and save button in header
+* Product image upload area with camera/gallery options
+* Product name input field
+* Category dropdown with add new option
+* Barcode input with scan button
+* Buy price input field
+* Sell price input field with profit margin display
+* Stock quantity input
+* Supplier dropdown with add new option
+* Description textarea
+* Status toggle (active/inactive)
+* Delete button (edit mode only)
+* Form validation messages
+
+**Navigation:**
+
+* Entry: Products screen, scan barcode result
+* Exit: Save → Products screen, Cancel → Previous screen
+
+#### Billing Screen (`/billing`)
+
+**UI Elements:**
+
+* Customer selection dropdown with quick add
+* Product search bar with barcode scan button
+* Category filter tabs
+* Product grid with quick add buttons
+* Shopping cart sidebar (desktop) or bottom sheet (mobile)
+* Cart items list with quantity controls
+* Subtotal and tax calculations
+* Discount input field
+* Payment method selector
+* Checkout button (primary)
+* Clear cart button
+* Recently sold products section
+
+**Navigation:**
+
+* Entry: Bottom navigation, dashboard quick action
+* Exit: Checkout → Payment screen, Customer → Add customer
+
+#### Cart/Checkout Screen (`/billing/checkout`)
+
+**UI Elements:**
+
+* Order summary header
+* Customer details card with edit option
+* Line items list with prices
+* Subtotal, tax, and discount breakdown
+* Total amount prominently displayed
+* Payment method selection
+* Payment amount input (for cash payments)
+* Change calculation display
+* Special instructions textarea
+* Confirm order button (primary)
+* Back to billing button
+* Print preview toggle
+
+**Navigation:**
+
+* Entry: Billing screen checkout
+* Exit: Confirm → Bill success, Back → Billing screen
+
+#### Bill Success Screen (`/billing/success/:billId`)
+
+**UI Elements:**
+
+* Success checkmark animation
+* Bill number and amount
+* Customer details
+* Action buttons grid:
+    * View bill details
+    * Download PDF
+    * Share bill
+    * Print bill
+    * Send via WhatsApp
+* Create new bill button (primary)
+* Duplicate bill button
+* Return to dashboard button
+
+**Navigation:**
+
+* Entry: Successful checkout
+* Exit: New bill → Billing screen, Dashboard → Home
+
+#### Customers Screen (`/customers`)
+
+**UI Elements:**
+
+* Header with search bar and add customer button
+* Customer list with avatar, name, phone, and last purchase
+* Customer stats cards (total customers, recent purchases)
+* Search and filter options
+* Sort dropdown (name, recent purchase, total spent)
+* Quick contact actions (call, message)
+* Infinite scroll pagination
+* Empty state with add customer CTA
+
+**Navigation:**
+
+* Entry: Bottom navigation, billing screen
+* Exit: Customer detail → Customer profile, Add → Add customer form
+
+#### Add/Edit Customer Screen (`/customers/add`, `/customers/edit/:id`)
+
+**UI Elements:**
+
+* Back button and save button in header
+* Customer avatar upload
+* Name input field
+* Phone number input with validation
+* Email input field
+* Address textarea
+* Customer type dropdown (regular, premium, wholesale)
+* Credit limit input field
+* Notes textarea
+* Status toggle (active/inactive)
+* Delete button (edit mode only)
+
+**Navigation:**
+
+* Entry: Customers screen, billing quick add
+* Exit: Save → Customers screen, Cancel → Previous screen
+
+#### Customer Detail Screen (`/customers/:id`)
+
+**UI Elements:**
+
+* Customer profile header with avatar and contact info
+* Edit customer button
+* Purchase history list
+* Total spent and visit count stats
+* Recent bills with quick actions
+* Contact action buttons (call, message, email)
+* Purchase analytics chart
+* Favorite products list
+* Credit/payment status
+
+**Navigation:**
+
+* Entry: Customers list, bill customer link
+* Exit: Edit → Edit customer, Bills → Bill detail
+
+### Settings and Management Screens
+
+#### More/Menu Screen (`/more`)
+
+**UI Elements:**
+
+* User profile section with avatar and shop info
+* Settings menu items:
+    * Reports & Analytics
+    * Inventory Management
+    * Bill Settings
+    * Device Center
+    * Backup & Sync
+    * Store Settings
+    * User Management
+    * Help & Support
+* Shop selector for multi-shop users
+* Logout button
+* App version information
+
+**Navigation:**
+
+* Entry: Bottom navigation
+* Exit: Menu items → Respective settings screens
+
+#### Reports Screen (`/reports`)
+
+**UI Elements:**
+
+* Date range picker
+* Report type tabs (sales, inventory, profit, customer)
+* Key metrics cards
+* Interactive charts and graphs
+* Export options (PDF, CSV)
+* Filter options (products, categories, customers)
+* Comparison periods toggle
+* Detailed data tables
+* Print report button
+
+**Navigation:**
+
+* Entry: More screen, dashboard analytics
+* Exit: Back → More screen, Export → Share dialog
+
+#### Store Settings Screen (`/settings/store`)
+
+**UI Elements:**
+
+* Store information form (name, address, contact)
+* Logo upload section
+* Business details (GST, license numbers)
+* Operating hours settings
+* Currency and tax settings
+* Bill customization options
+* Default payment methods
+* Shop-specific preferences
+* Save changes button
+
+**Navigation:**
+
+* Entry: More screen menu
+* Exit: Save → More screen, Cancel → More screen
+
+#### Device Center Screen (`/settings/devices`)
+
+**UI Elements:**
+
+* Connected devices list
+* Printer configuration section
+* Barcode scanner settings
+* Bluetooth device pairing
+* Device status indicators
+* Test connection buttons
+* Device-specific settings
+* Add device wizard
+* Troubleshooting links
+
+**Navigation:**
+
+* Entry: More screen menu
+* Exit: Back → More screen, Add device → Setup wizard
+
+### Utility Screens
+
+#### Bill Detail Screen (`/bills/:id`)
+
+**UI Elements:**
+
+* Bill header with number, date, customer
+* Line items table with products and prices
+* Payment information
+* Total breakdown
+* Bill status indicator
+* Action buttons (print, share, duplicate, void)
+* Customer information card
+* Payment history (if applicable)
+* Related bills section
+
+**Navigation:**
+
+* Entry: Bill success, customer history, reports
+* Exit: Share → Share dialog, Customer → Customer detail
+
+#### Barcode Scanner Screen (`/scanner`)
+
+**UI Elements:**
+
+* Camera viewfinder with scanning overlay
+* Torch/flashlight toggle
+* Manual barcode input option
+* Recently scanned items list
+* Scanner mode toggle (add to cart, add product)
+* Cancel/close button
+* Scanning instructions
+* Unknown barcode options
+
+**Navigation:**
+
+* Entry: Billing screen, product add, quick actions
+* Exit: Successful scan → Return to origin, Cancel → Previous screen
+
+## 6\. App Menu and Navigation Structure
+
+### Primary Navigation (Bottom Navigation - Mobile)
+
+* **Home** \- Dashboard and overview
+* **Products** \- Product management and inventory
+* **Billing** \- Point of sale and checkout
+* **Customers** \- Customer database and management
+* **More** \- Settings\, reports\, and additional features
+
+### Secondary Navigation (Header/Sidebar)
+
+* Shop selector dropdown (multi-shop users)
+* User profile menu
+* Notifications indicator
+* Quick search (global)
+* Settings access
+
+### Navigation Hierarchy
+
+```
+Main App
+├── Dashboard (/)
+├── Products (/products)
+│   ├── Add Product (/products/add)
+│   └── Edit Product (/products/edit/:id)
+├── Billing (/billing)
+│   ├── Checkout (/billing/checkout)
+│   └── Success (/billing/success/:billId)
+├── Customers (/customers)
+│   ├── Add Customer (/customers/add)
+│   ├── Edit Customer (/customers/edit/:id)
+│   └── Customer Detail (/customers/:id)
+└── More (/more)
+    ├── Reports (/reports)
+    ├── Store Settings (/settings/store)
+    ├── Device Center (/settings/devices)
+    └── Additional Settings
+```
+
+### Contextual Navigation
+
+* Floating action buttons for primary actions
+* Breadcrumb navigation for deep screens
+* Swipe gestures for mobile navigation
+* Keyboard shortcuts for power users
+
+## 7\. User Flow
+
+### Initial Setup Flow
+
+1. User visits application URL
+2. Redirected to login screen if not authenticated
+3. New users click "Create account" → Registration screen
+4. User fills shop details and personal information
+5. Account created → Automatic login → Onboarding tour
+6. User completes basic store setup (logo, preferences)
+7. Redirected to dashboard with welcome message
+
+### Daily Operations Flow
+
+#### Morning Setup
+
+1. User opens app → Dashboard loads with overnight sync
+2. Reviews yesterday's sales summary and today's goals
+3. Checks low stock alerts and pending orders
+4. Updates inventory if needed via Products screen
+
+#### Customer Purchase Flow
+
+1. Customer arrives → User navigates to Billing screen
+2. User searches/scans products or browses categories
+3. Adds products to cart with quantities
+4. Selects existing customer or adds new customer quickly
+5. Reviews cart → Proceeds to checkout
+6. Confirms order details and payment method
+7. Processes payment → Bill generated successfully
+8. Shares/prints bill → Customer receives receipt
+9. Cart automatically clears → Ready for next customer
+
+#### Product Management Flow
+
+1. User navigates to Products screen
+2. Uses category filters to find specific products
+3. For new products: Clicks add → Fills product form → Scans/enters barcode → Saves
+4. For existing products: Long-press/click edit → Updates information → Saves
+5. Bulk operations: Selects multiple products → Applies batch updates
+
+#### End of Day Flow
+
+1. User reviews daily sales in Reports screen
+2. Checks inventory levels and updates stock
+3. Reviews customer interactions and follows up if needed
+4. Syncs data and backs up important information
+5. Prepares for next day operations
+
+### Multi-Shop Management Flow
+
+1. Shop owner logs in → Dashboard shows default shop
+2. Uses shop selector to switch between locations
+3. Each shop maintains completely isolated data
+4. Can compare performance across shops in Reports
+5. Manages shop-specific settings independently
+6. Central user management across all shops
+
+### Error Recovery Flow
+
+1. Network issues → App continues offline with local storage
+2. Sync conflicts → Automatic resolution with user notification
+3. Failed transactions → Queued for retry with user awareness
+4. Data corruption → Restore from backup with minimal data loss
+5. Hardware issues → Graceful degradation with manual alternatives

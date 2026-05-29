@@ -70,7 +70,8 @@ router.get("/products", async (req, res): Promise<void> => {
         p.name.toLowerCase().includes(s) ||
         (p.brand && p.brand.toLowerCase().includes(s)) ||
         (p.hinglishAliases && p.hinglishAliases.toLowerCase().includes(s)) ||
-        (p.displayName && p.displayName.toLowerCase().includes(s))
+        (p.displayName && p.displayName.toLowerCase().includes(s)) ||
+        (p.barcode && p.barcode.toLowerCase().includes(s))
     );
   }
 

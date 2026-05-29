@@ -6,6 +6,11 @@ export interface ReceiptItem {
 }
 
 export interface ReceiptData {
+  storeName?: string;
+  storeTagline?: string;
+  storeAddress?: string;
+  storePhone?: string;
+  footerMessage?: string;
   billNumber: string;
   date: string;
   time: string;
@@ -22,8 +27,9 @@ export interface ReceiptData {
 }
 
 export function printReceipt(data: ReceiptData) {
-  const storeName = "Anupurna Traders";
-  const storeTag = "Safai Market";
+  const storeName = data.storeName || "My Shop";
+  const storeTag = data.storeTagline || "Safai Market";
+  const footerMsg = data.footerMessage || "Thank you for shopping!";
 
   const fmtCurr = (n: number) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(n);
@@ -76,6 +82,12 @@ export function printReceipt(data: ReceiptData) {
       font-size: 9pt;
       text-align: center;
       color: #333;
+    }
+    .store-meta {
+      font-size: 7.5pt;
+      text-align: center;
+      color: #555;
+      margin-top: 1mm;
     }
     .divider {
       border: none;
@@ -146,8 +158,10 @@ export function printReceipt(data: ReceiptData) {
   </style>
 </head>
 <body>
-  <div class="store-name">${storeName}</div>
-  <div class="store-tag">${storeTag}</div>
+  <div class="store-name">${escapeHtml(storeName)}</div>
+  <div class="store-tag">${escapeHtml(storeTag)}</div>
+  ${data.storePhone ? `<div class="store-meta">${escapeHtml(data.storePhone)}</div>` : ""}
+  ${data.storeAddress ? `<div class="store-meta">${escapeHtml(data.storeAddress)}</div>` : ""}
   <hr class="divider" />
   <div class="bill-meta">
     <span>Bill: <strong>${data.billNumber}</strong></span>
@@ -193,7 +207,7 @@ export function printReceipt(data: ReceiptData) {
 
   <hr class="divider" />
   <div class="thank-you">Thank You!</div>
-  <div class="footer">Visit Again · Anupurna Traders</div>
+  <div class="footer">${escapeHtml(footerMsg)}</div>
   <div style="margin-top: 5mm;"></div>
 </body>
 </html>`;
