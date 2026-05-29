@@ -18,6 +18,7 @@ export const productsTable = pgTable("products", {
   currentStock: numeric("current_stock", { precision: 10, scale: 2 }).notNull().default("0"),
   lowStockLimit: numeric("low_stock_limit", { precision: 10, scale: 2 }).notNull().default("5"),
   reorderQuantity: numeric("reorder_quantity", { precision: 10, scale: 2 }),
+  shopId: integer("shop_id"),
   primarySupplierId: integer("primary_supplier_id"),
   hinglishAliases: text("hinglish_aliases"),
   status: text("status").notNull().default("active"),

@@ -12,9 +12,11 @@ import stockMovementsRouter from "./stock_movements";
 import expensesRouter from "./expenses";
 import dailyClosingsRouter from "./daily_closings";
 import bundlesRouter from "./bundles";
+import shopsRouter from "./shops";
 
 const router: IRouter = Router();
 
+router.use(shopsRouter);
 router.use(healthRouter);
 router.use(dashboardRouter);
 router.use(profitRouter);

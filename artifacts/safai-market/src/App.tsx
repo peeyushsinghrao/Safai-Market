@@ -5,6 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
 import Layout from "./components/layout";
+import { AuthProvider } from "./components/auth-provider";
+import { AuthGuard } from "./components/auth-guard";
+
 import Home from "./pages/home";
 import ProductsList from "./pages/products/index";
 import ProductNew from "./pages/products/new";
@@ -14,6 +17,7 @@ import Billing from "./pages/billing/index";
 import CustomersList from "./pages/customers/index";
 import CustomerNew from "./pages/customers/new";
 import CustomerDetail from "./pages/customers/detail";
+import CustomerEdit from "./pages/customers/edit";
 import SuppliersList from "./pages/suppliers/index";
 import SupplierNew from "./pages/suppliers/new";
 import SupplierDetail from "./pages/suppliers/detail";
@@ -28,11 +32,14 @@ import MoreMenu from "./pages/more/index";
 import ProfitReports from "./pages/profit/index";
 import BillsHistory from "./pages/bills/index";
 import BillDetail from "./pages/bills/detail";
-import CustomerEdit from "./pages/customers/edit";
 import StoreSettings from "./pages/settings/store";
 import BundlesList from "./pages/bundles/index";
 import BundleNew from "./pages/bundles/new";
 import BundleDetail from "./pages/bundles/detail";
+
+import Login from "./pages/auth/login";
+import Register from "./pages/auth/register";
+import Onboarding from "./pages/auth/onboarding";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +52,7 @@ const BillingPage = () => <Layout><Billing /></Layout>;
 const CustomersListPage = () => <Layout><CustomersList /></Layout>;
 const CustomerNewPage = () => <Layout><CustomerNew /></Layout>;
 const CustomerDetailPage = () => <Layout><CustomerDetail /></Layout>;
+const CustomerEditPage = () => <Layout><CustomerEdit /></Layout>;
 const SuppliersListPage = () => <Layout><SuppliersList /></Layout>;
 const SupplierNewPage = () => <Layout><SupplierNew /></Layout>;
 const SupplierDetailPage = () => <Layout><SupplierDetail /></Layout>;
@@ -59,7 +67,6 @@ const MoreMenuPage = () => <Layout><MoreMenu /></Layout>;
 const ProfitReportsPage = () => <Layout><ProfitReports /></Layout>;
 const BillsHistoryPage = () => <Layout><BillsHistory /></Layout>;
 const BillDetailPage = () => <BillDetail />;
-const CustomerEditPage = () => <Layout><CustomerEdit /></Layout>;
 const StoreSettingsPage = () => <Layout><StoreSettings /></Layout>;
 const BundlesListPage = () => <Layout><BundlesList /></Layout>;
 const BundleNewPage = () => <Layout><BundleNew /></Layout>;
@@ -69,6 +76,12 @@ const NotFoundPage = () => <Layout><NotFound /></Layout>;
 function Router() {
   return (
     <Switch>
+      {/* Auth routes — public */}
+      <Route path="/auth/login" component={Login} />
+      <Route path="/auth/register" component={Register} />
+      <Route path="/auth/onboarding" component={Onboarding} />
+
+      {/* App routes — protected by AuthGuard */}
       <Route path="/" component={HomePage} />
 
       <Route path="/products" component={ProductsListPage} />
@@ -117,7 +130,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
+          <AuthProvider>
+            <AuthGuard>
+              <Router />
+            </AuthGuard>
+          </AuthProvider>
         </WouterRouter>
         <Toaster />
       </TooltipProvider>

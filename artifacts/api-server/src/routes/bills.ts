@@ -7,7 +7,8 @@ import {
   CancelBillParams,
   CancelBillBody,
 } from "@workspace/api-zod";
-import { eq, desc, and, gte, lte, inArray, sql } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, isNull } from "drizzle-orm";
+import { optionalAuth } from "../middleware/auth";
 
 function generateBillNumber(): string {
   const now = new Date();
@@ -18,7 +19,7 @@ function generateBillNumber(): string {
 
 const router: IRouter = Router();
 
-router.get("/bills", async (req, res): Promise<void> => {
+router.get("/bills", optionalAuth, async (req, res): Promise<void> => {
   const query = ListBillsQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
@@ -26,6 +27,10 @@ router.get("/bills", async (req, res): Promise<void> => {
   }
 
   const limit = query.data.limit ?? 50;
+
+  const shopFilter = req.shopId
+    ? eq(billsTable.shopId, req.shopId)
+    : isNull(billsTable.shopId);
 
   const bills = await db
     .select({
@@ -44,6 +49,7 @@ router.get("/bills", async (req, res): Promise<void> => {
       createdAt: billsTable.createdAt,
     })
     .from(billsTable)
+    .where(shopFilter)
     .orderBy(desc(billsTable.createdAt))
     .limit(limit);
 
@@ -70,7 +76,7 @@ router.get("/bills", async (req, res): Promise<void> => {
   res.json(result);
 });
 
-router.post("/bills", async (req, res): Promise<void> => {
+router.post("/bills", optionalAuth, async (req, res): Promise<void> => {
   const parsed = CreateBillBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -105,13 +111,12 @@ router.post("/bills", async (req, res): Promise<void> => {
   }
 
   try {
-    // Wrap everything in a single atomic transaction
     const result = await db.transaction(async (tx) => {
-      // Create bill
       const [bill] = await tx.insert(billsTable).values({
         billNumber: generateBillNumber(),
         customerId: customerId ?? null,
         customerName,
+        shopId: req.shopId ?? null,
         totalAmount: String(totalAmount),
         cashAmount: String(cashAmount),
         upiAmount: String(upiAmount),
@@ -120,7 +125,6 @@ router.post("/bills", async (req, res): Promise<void> => {
         notes: notes ?? null,
       }).returning();
 
-      // Insert items, update stock, log movements
       let totalEstimatedProfit = 0;
       for (const item of items) {
         const [product] = await tx.select().from(productsTable).where(eq(productsTable.id, item.productId));
@@ -163,7 +167,6 @@ router.post("/bills", async (req, res): Promise<void> => {
         });
       }
 
-      // If udhaar, update customer balance
       if (udhaarAmount && Number(udhaarAmount) > 0 && customerId) {
         const [customer] = await tx.select().from(customersTable).where(eq(customersTable.id, customerId));
         const newBalance = Number(customer!.udhaarBalance) + Number(udhaarAmount);
@@ -178,7 +181,6 @@ router.post("/bills", async (req, res): Promise<void> => {
         });
       }
 
-      // Update bill with computed estimated profit
       const [updatedBill] = await tx
         .update(billsTable)
         .set({ estimatedProfit: String(totalEstimatedProfit) })
@@ -201,7 +203,7 @@ router.post("/bills", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/bills/:id", async (req, res): Promise<void> => {
+router.get("/bills/:id", optionalAuth, async (req, res): Promise<void> => {
   const params = GetBillParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -223,7 +225,7 @@ router.get("/bills/:id", async (req, res): Promise<void> => {
   res.json({ ...bill, items });
 });
 
-router.post("/bills/:id/cancel", async (req, res): Promise<void> => {
+router.post("/bills/:id/cancel", optionalAuth, async (req, res): Promise<void> => {
   const params = CancelBillParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -250,7 +252,6 @@ router.post("/bills/:id/cancel", async (req, res): Promise<void> => {
 
   try {
     const result = await db.transaction(async (tx) => {
-      // Restore stock for each item
       for (const item of items) {
         const [product] = await tx.select().from(productsTable).where(eq(productsTable.id, item.productId));
         if (product) {
@@ -271,7 +272,6 @@ router.post("/bills/:id/cancel", async (req, res): Promise<void> => {
         }
       }
 
-      // Reverse udhaar if applicable
       if (Number(bill.udhaarAmount) > 0 && bill.customerId) {
         const [customer] = await tx.select().from(customersTable).where(eq(customersTable.id, bill.customerId));
         if (customer) {

@@ -1,11 +1,11 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsStore } from "@/stores/settings";
 import {
   Search, X, ShoppingCart, Plus, Minus, Trash2,
   CheckCircle2, TrendingUp, AlertTriangle, Printer,
-  Package, Tag, PlusCircle, Layers,
+  Package, Tag, PlusCircle, Layers, Camera,
 } from "lucide-react";
 import { useBundles } from "@/hooks/use-bundles";
 import { printReceipt } from "@/lib/receipt";
@@ -40,6 +40,8 @@ import {
   MARGIN_TIER_CONFIG,
 } from "@/lib/profit";
 import { useCartStore } from "@/stores/cart";
+
+const BarcodeScannerModal = lazy(() => import("@/components/barcode-scanner-modal"));
 
 type ProductItem = {
   id: number;
@@ -818,6 +820,7 @@ export default function Billing() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [billSuccess, setBillSuccess] = useState<BillSuccessData | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"products" | "bundles">("products");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -995,24 +998,35 @@ export default function Billing() {
       {/* Search Bar */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b">
         <div className="p-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input
-              ref={searchInputRef}
-              className="w-full pl-10 pr-10 h-12 rounded-xl border bg-white shadow-sm text-base focus:outline-none focus:ring-2 focus:ring-primary/30"
-              placeholder="Search product..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              data-testid="input-product-search"
-            />
-            {search && (
-              <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                onClick={() => setSearch("")}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <input
+                ref={searchInputRef}
+                className="w-full pl-10 pr-10 h-12 rounded-xl border bg-white shadow-sm text-base focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="Search product or barcode..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                data-testid="input-product-search"
+              />
+              {search && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  onClick={() => setSearch("")}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {/* Camera barcode scan button */}
+            <button
+              className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary active:bg-primary/20 transition-colors"
+              onClick={() => setScannerOpen(true)}
+              title="Scan barcode with camera"
+              data-testid="btn-barcode-scan"
+            >
+              <Camera className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
@@ -1224,32 +1238,38 @@ export default function Billing() {
         )}
       </div>
 
-      {/* Sticky Cart Footer */}
+      {/* Sticky Cart Footer — split: left opens cart drawer, right goes direct to checkout */}
       {itemCount > 0 && (
         <div className="fixed bottom-[60px] left-0 right-0 z-30 px-3 pb-2">
-          <button
-            className="w-full bg-primary text-white rounded-2xl shadow-lg shadow-primary/30 flex items-center px-4 py-3 gap-3 active:scale-[0.98] transition-transform"
-            onClick={() => setCartOpen(true)}
-            data-testid="cart-footer"
-          >
-            <div className="bg-white/20 rounded-xl w-10 h-10 flex items-center justify-center shrink-0 relative">
-              <ShoppingCart className="w-5 h-5" />
-              <span className="absolute -top-1.5 -right-1.5 bg-white text-primary text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                {itemCount}
-              </span>
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-xs text-white/70">
-                {itemCount} item{itemCount !== 1 ? "s" : ""}
-              </p>
-              <p className="text-base font-bold leading-tight">
-                {formatCurrency(cartTotal)}
-              </p>
-            </div>
-            <div className="bg-white text-primary text-sm font-bold px-4 py-2 rounded-xl">
-              Checkout →
-            </div>
-          </button>
+          <div className="flex gap-2">
+            {/* Left: view / edit cart */}
+            <button
+              className="flex items-center gap-3 bg-gray-900 text-white rounded-2xl shadow-xl px-4 py-3 flex-1 active:scale-[0.98] transition-transform"
+              onClick={() => setCartOpen(true)}
+              data-testid="cart-footer"
+            >
+              <div className="bg-white/10 rounded-xl w-9 h-9 flex items-center justify-center shrink-0 relative">
+                <ShoppingCart className="w-4 h-4" />
+                <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {itemCount}
+                </span>
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-[11px] text-white/60 leading-none mb-0.5">{itemCount} item{itemCount !== 1 ? "s" : ""}</p>
+                <p className="text-base font-bold leading-none">{formatCurrency(cartTotal)}</p>
+              </div>
+            </button>
+
+            {/* Right: place order directly */}
+            <button
+              className="bg-primary text-white rounded-2xl shadow-lg shadow-primary/40 px-5 py-3 font-bold text-sm flex items-center gap-2 shrink-0 active:scale-[0.98] transition-transform"
+              onClick={handleCheckoutOpen}
+              data-testid="place-order"
+            >
+              Place Order
+              <span className="text-lg leading-none">→</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -1274,6 +1294,18 @@ export default function Billing() {
         onSaved={handleQuickAddSaved}
         showAddToCart={true}
       />
+
+      {/* Camera Barcode Scanner */}
+      <Suspense fallback={null}>
+        <BarcodeScannerModal
+          open={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onDetected={(barcode) => {
+            setSearch(barcode);
+            setTimeout(() => searchInputRef.current?.focus(), 100);
+          }}
+        />
+      </Suspense>
     </div>
   );
 }

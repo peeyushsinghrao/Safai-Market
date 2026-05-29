@@ -13,6 +13,7 @@ export const billsTable = pgTable("bills", {
   udhaarAmount: numeric("udhaar_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   estimatedProfit: numeric("estimated_profit", { precision: 10, scale: 2 }),
+  shopId: integer("shop_id"),
   status: text("status").notNull().default("active"), // active | cancelled
   cancelReason: text("cancel_reason"),
   notes: text("notes"),

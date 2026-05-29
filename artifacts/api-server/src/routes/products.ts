@@ -9,18 +9,23 @@ import {
   ArchiveProductParams,
   GetProductStockMovementsParams,
 } from "@workspace/api-zod";
-import { eq, and, like, or, lte, asc, desc } from "drizzle-orm";
+import { eq, and, asc, desc, isNull, or } from "drizzle-orm";
+import { optionalAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
-router.get("/products", async (req, res): Promise<void> => {
+router.get("/products", optionalAuth, async (req, res): Promise<void> => {
   const query = ListProductsQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
     return;
   }
 
-  const { search, categoryId, status, lowStockOnly, outOfStockOnly } = query.data;
+  const { search, categoryId, status, lowStockOnly, outOfStockOnly, limit } = query.data as typeof query.data & { limit?: number };
+
+  const shopFilter = req.shopId
+    ? eq(productsTable.shopId, req.shopId)
+    : isNull(productsTable.shopId);
 
   let products = await db
     .select({
@@ -39,6 +44,7 @@ router.get("/products", async (req, res): Promise<void> => {
       currentStock: productsTable.currentStock,
       lowStockLimit: productsTable.lowStockLimit,
       reorderQuantity: productsTable.reorderQuantity,
+      shopId: productsTable.shopId,
       primarySupplierId: productsTable.primarySupplierId,
       hinglishAliases: productsTable.hinglishAliases,
       barcode: productsTable.barcode,
@@ -51,6 +57,7 @@ router.get("/products", async (req, res): Promise<void> => {
     })
     .from(productsTable)
     .leftJoin(categoriesTable, eq(productsTable.categoryId, categoriesTable.id))
+    .where(shopFilter)
     .orderBy(asc(productsTable.currentStock), asc(productsTable.name));
 
   if (status) {
@@ -83,10 +90,14 @@ router.get("/products", async (req, res): Promise<void> => {
     products = products.filter((p) => Number(p.currentStock) <= 0);
   }
 
+  if (limit) {
+    products = products.slice(0, limit);
+  }
+
   res.json(products);
 });
 
-router.post("/products", async (req, res): Promise<void> => {
+router.post("/products", optionalAuth, async (req, res): Promise<void> => {
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -97,7 +108,7 @@ router.post("/products", async (req, res): Promise<void> => {
 
   const [product] = await db
     .insert(productsTable)
-    .values({ ...productData, currentStock: String(initialStock ?? 0) })
+    .values({ ...productData, shopId: req.shopId ?? null, currentStock: String(initialStock ?? 0) })
     .returning();
 
   if (initialStock && initialStock > 0) {
@@ -115,7 +126,7 @@ router.post("/products", async (req, res): Promise<void> => {
   res.status(201).json({ ...product, categoryName: null });
 });
 
-router.get("/products/:id", async (req, res): Promise<void> => {
+router.get("/products/:id", optionalAuth, async (req, res): Promise<void> => {
   const params = GetProductParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -139,6 +150,7 @@ router.get("/products/:id", async (req, res): Promise<void> => {
       currentStock: productsTable.currentStock,
       lowStockLimit: productsTable.lowStockLimit,
       reorderQuantity: productsTable.reorderQuantity,
+      shopId: productsTable.shopId,
       primarySupplierId: productsTable.primarySupplierId,
       hinglishAliases: productsTable.hinglishAliases,
       barcode: productsTable.barcode,
@@ -161,7 +173,7 @@ router.get("/products/:id", async (req, res): Promise<void> => {
   res.json(product);
 });
 
-router.patch("/products/:id", async (req, res): Promise<void> => {
+router.patch("/products/:id", optionalAuth, async (req, res): Promise<void> => {
   const params = UpdateProductParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -188,7 +200,7 @@ router.patch("/products/:id", async (req, res): Promise<void> => {
   res.json({ ...product, categoryName: null });
 });
 
-router.post("/products/:id/archive", async (req, res): Promise<void> => {
+router.post("/products/:id/archive", optionalAuth, async (req, res): Promise<void> => {
   const params = ArchiveProductParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -209,7 +221,7 @@ router.post("/products/:id/archive", async (req, res): Promise<void> => {
   res.json({ ...product, categoryName: null });
 });
 
-router.get("/products/:id/stock-movements", async (req, res): Promise<void> => {
+router.get("/products/:id/stock-movements", optionalAuth, async (req, res): Promise<void> => {
   const params = GetProductStockMovementsParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

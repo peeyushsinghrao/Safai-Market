@@ -9,21 +9,26 @@ import {
   ReceiveCustomerPaymentParams,
   ReceiveCustomerPaymentBody,
 } from "@workspace/api-zod";
-import { eq, desc, gt } from "drizzle-orm";
+import { eq, desc, and, isNull } from "drizzle-orm";
+import { optionalAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
-router.get("/customers", async (req, res): Promise<void> => {
+router.get("/customers", optionalAuth, async (req, res): Promise<void> => {
   const query = ListCustomersQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
     return;
   }
 
+  const shopFilter = req.shopId
+    ? and(eq(customersTable.status, "active"), eq(customersTable.shopId, req.shopId))
+    : and(eq(customersTable.status, "active"), isNull(customersTable.shopId));
+
   let customers = await db
     .select()
     .from(customersTable)
-    .where(eq(customersTable.status, "active"))
+    .where(shopFilter)
     .orderBy(desc(customersTable.udhaarBalance));
 
   if (query.data.search) {
@@ -42,7 +47,7 @@ router.get("/customers", async (req, res): Promise<void> => {
   res.json(customers);
 });
 
-router.post("/customers", async (req, res): Promise<void> => {
+router.post("/customers", optionalAuth, async (req, res): Promise<void> => {
   const parsed = CreateCustomerBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -53,7 +58,7 @@ router.post("/customers", async (req, res): Promise<void> => {
 
   const [customer] = await db
     .insert(customersTable)
-    .values({ ...customerData, udhaarBalance: String(openingBalance ?? 0) })
+    .values({ ...customerData, shopId: req.shopId ?? null, udhaarBalance: String(openingBalance ?? 0) })
     .returning();
 
   if (openingBalance && openingBalance > 0) {
@@ -69,7 +74,7 @@ router.post("/customers", async (req, res): Promise<void> => {
   res.status(201).json(customer);
 });
 
-router.get("/customers/:id", async (req, res): Promise<void> => {
+router.get("/customers/:id", optionalAuth, async (req, res): Promise<void> => {
   const params = GetCustomerParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -96,7 +101,7 @@ router.get("/customers/:id", async (req, res): Promise<void> => {
   res.json({ ...customer, ledger });
 });
 
-router.patch("/customers/:id", async (req, res): Promise<void> => {
+router.patch("/customers/:id", optionalAuth, async (req, res): Promise<void> => {
   const params = UpdateCustomerParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -123,7 +128,7 @@ router.patch("/customers/:id", async (req, res): Promise<void> => {
   res.json(customer);
 });
 
-router.post("/customers/:id/payments", async (req, res): Promise<void> => {
+router.post("/customers/:id/payments", optionalAuth, async (req, res): Promise<void> => {
   const params = ReceiveCustomerPaymentParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

@@ -1,2 +1,4 @@
 - [Drizzle inArray vs ANY](drizzle-inarray.md) — always use `inArray()` from drizzle-orm for `WHERE id = ANY(array)`, never raw `sql\`ANY(${arr})\``
 - [Profit system architecture](profit-system.md) — buy_price_snapshot/profit_amount on bill_items, estimated_profit on bills; profit hooks live in /profit/* API routes; seed via `pnpm dlx tsx artifacts/api-server/src/scripts/seed-demo.ts`
+- [Supabase Node.js 20 fix](supabase-node20.md) — Node.js 20 lacks native WebSocket; polyfill with `import WebSocket from 'ws'; if (!globalThis.WebSocket) (globalThis as any).WebSocket = WebSocket;` before createClient
+- [Shop isolation pattern](shop-isolation.md) — shop_id (nullable int) on products/bills/customers/categories; optionalAuth on all routes; filter by eq(table.shopId, req.shopId) when set, isNull otherwise; categories also shows global (isNull) rows to all shops
