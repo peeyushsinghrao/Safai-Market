@@ -15,7 +15,7 @@ paths = [ "/" ]
 localPort = 22669
 
 [services.development]
-run = "pnpm --filter @workspace/safai-market run dev"
+run = "PORT=22669 BASE_PATH=/ pnpm --filter @workspace/safai-market run dev"
 
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/safai-market", "run", "build" ]
