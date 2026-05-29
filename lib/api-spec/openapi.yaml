@@ -45,6 +45,101 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  # ─── PROFIT ──────────────────────────────────────────────────────────────────
+  /profit/summary:
+    get:
+      operationId: getProfitSummary
+      tags: [dashboard]
+      summary: Get profit summary for a date range
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Profit summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfitSummary"
+
+  /profit/daily:
+    get:
+      operationId: getProfitDaily
+      tags: [dashboard]
+      summary: Get daily profit trend
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Daily profit data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyProfitEntry"
+
+  /profit/by-product:
+    get:
+      operationId: getProfitByProduct
+      tags: [dashboard]
+      summary: Get profit breakdown by product
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product profit data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductProfitEntry"
+
+  /profit/by-category:
+    get:
+      operationId: getProfitByCategory
+      tags: [dashboard]
+      summary: Get profit breakdown by category
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Category profit data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryProfitEntry"
+
   # ─── DASHBOARD ───────────────────────────────────────────────────────────────
   /dashboard/summary:
     get:
@@ -802,6 +897,66 @@ paths:
 
 components:
   schemas:
+    ProfitSummary:
+      type: object
+      required: [totalSales, totalProfit, billCount, billsWithProfit, avgMarginPct]
+      properties:
+        totalSales:
+          type: number
+        totalProfit:
+          type: number
+        billCount:
+          type: integer
+        billsWithProfit:
+          type: integer
+        avgMarginPct:
+          type: number
+
+    DailyProfitEntry:
+      type: object
+      required: [date, sales, profit, billCount]
+      properties:
+        date:
+          type: string
+        sales:
+          type: number
+        profit:
+          type: number
+        billCount:
+          type: integer
+
+    ProductProfitEntry:
+      type: object
+      required: [productId, productName, quantitySold, revenue, profit, marginPct, hasProfit]
+      properties:
+        productId:
+          type: integer
+        productName:
+          type: string
+        quantitySold:
+          type: number
+        revenue:
+          type: number
+        profit:
+          type: number
+        marginPct:
+          type: number
+        hasProfit:
+          type: boolean
+
+    CategoryProfitEntry:
+      type: object
+      required: [category, revenue, profit, marginPct]
+      properties:
+        category:
+          type: string
+        revenue:
+          type: number
+        profit:
+          type: number
+        marginPct:
+          type: number
+
     HealthStatus:
       type: object
       properties:

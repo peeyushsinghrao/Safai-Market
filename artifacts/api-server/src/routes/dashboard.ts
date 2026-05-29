@@ -43,6 +43,9 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const lastClosingDate = lastClosing[0]?.date ?? null;
   const pendingClosingDate = lastClosingDate !== yesterday && lastClosingDate !== today ? yesterday : null;
 
+  const todayEstimatedProfit = todayBills.reduce((s, b) => s + (b.estimatedProfit != null ? Number(b.estimatedProfit) : 0), 0);
+  const todayBillsWithProfit = todayBills.filter(b => b.estimatedProfit != null).length;
+
   res.json({
     todayTotalSales,
     todayBillCount: todayBills.length,
@@ -54,6 +57,8 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     totalSupplierPending: Number(totalSupplierPending[0]?.total ?? 0),
     lowStockCount,
     pendingClosingDate,
+    todayEstimatedProfit,
+    todayBillsWithProfit,
   });
 });
 
