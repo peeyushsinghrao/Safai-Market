@@ -1000,6 +1000,10 @@ components:
           type: integer
         pendingClosingDate:
           type: ["string", "null"]
+        todayEstimatedProfit:
+          type: number
+        todayBillsWithProfit:
+          type: integer
 
     LowStockProduct:
       type: object

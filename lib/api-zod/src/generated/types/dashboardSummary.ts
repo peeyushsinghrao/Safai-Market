@@ -18,4 +18,6 @@ export interface DashboardSummary {
   lowStockCount: number;
   /** @nullable */
   pendingClosingDate: string | null;
+  todayEstimatedProfit?: number;
+  todayBillsWithProfit?: number;
 }

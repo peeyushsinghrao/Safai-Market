@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, billsTable, billItemsTable, productsTable, categoriesTable } from "@workspace/db";
-import { eq, gte, lte, and, desc, sql } from "drizzle-orm";
+import { eq, gte, lte, and, desc, sql, inArray } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -132,7 +132,7 @@ router.get("/profit/by-category", async (req, res): Promise<void> => {
         .select({ id: productsTable.id, categoryId: productsTable.categoryId, categoryName: categoriesTable.name })
         .from(productsTable)
         .leftJoin(categoriesTable, eq(productsTable.categoryId, categoriesTable.id))
-        .where(sql`${productsTable.id} = ANY(${productIds})`)
+        .where(inArray(productsTable.id, productIds))
     : [];
 
   const catMap = Object.fromEntries(products.map(p => [p.id, p.categoryName || "Uncategorized"]));

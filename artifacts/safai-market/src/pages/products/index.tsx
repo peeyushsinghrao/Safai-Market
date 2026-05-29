@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "wouter";
 import { useListProducts, useListCategories } from "@workspace/api-client-react";
-import { Plus, Search, Filter, AlertTriangle, ArrowUpDown } from "lucide-react";
+import { Plus, Search, ArrowUpDown, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,11 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { computeMargin, MARGIN_TIER_CONFIG } from "@/lib/profit";
 
 export default function ProductsList() {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | undefined>();
-  const [sortBy, setSortBy] = useState<"name" | "stock" | "category">("name");
+  const [sortBy, setSortBy] = useState<"name" | "stock" | "margin">("name");
 
   const { data: categories } = useListCategories();
   const { data: products, isLoading } = useListProducts({ 
@@ -25,7 +26,11 @@ export default function ProductsList() {
     if (!products) return [];
     return [...products].sort((a, b) => {
       if (sortBy === "stock") return a.currentStock - b.currentStock;
-      if (sortBy === "category") return (a.categoryName || "").localeCompare(b.categoryName || "");
+      if (sortBy === "margin") {
+        const ma = computeMargin(a.buyPrice, a.sellPrice);
+        const mb = computeMargin(b.buyPrice, b.sellPrice);
+        return (mb?.marginPct ?? -999) - (ma?.marginPct ?? -999);
+      }
       return a.name.localeCompare(b.name);
     });
   }, [products, sortBy]);
@@ -69,10 +74,32 @@ export default function ProductsList() {
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             {products?.length || 0} Products
           </h2>
-          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setSortBy(s => s === "name" ? "stock" : "name")}>
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            Sort
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant={sortBy === "name" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={() => setSortBy("name")}
+            >
+              A–Z
+            </Button>
+            <Button
+              variant={sortBy === "stock" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={() => setSortBy("stock")}
+            >
+              Stock
+            </Button>
+            <Button
+              variant={sortBy === "margin" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={() => setSortBy("margin")}
+            >
+              Margin
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -91,48 +118,71 @@ export default function ProductsList() {
           </div>
         ) : (
           <div className="space-y-3 pb-20">
-            {sortedProducts.map(product => (
-              <Link key={product.id} href={`/products/${product.id}`}>
-                <Card className="active-elevate border-muted/60 shadow-sm overflow-hidden hover:border-primary/30 transition-colors">
-                  <CardContent className="p-0 flex">
-                    <div className={cn(
-                      "w-1.5 shrink-0",
-                      product.currentStock <= 0 ? "bg-destructive" :
-                      product.currentStock <= (product.lowStockLimit || 5) ? "bg-amber-500" : "bg-primary"
-                    )} />
-                    <div className="p-4 flex-1 flex flex-col gap-1">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-bold text-gray-900 leading-tight">{product.name}</h3>
-                          {product.brand && <p className="text-xs text-muted-foreground">{product.brand}</p>}
+            {sortedProducts.map(product => {
+              const margin = computeMargin(product.buyPrice, product.sellPrice);
+              const tierCfg = margin ? MARGIN_TIER_CONFIG[margin.tier] : null;
+
+              return (
+                <Link key={product.id} href={`/products/${product.id}`}>
+                  <Card className="active-elevate border-muted/60 shadow-sm overflow-hidden hover:border-primary/30 transition-colors">
+                    <CardContent className="p-0 flex">
+                      <div className={cn(
+                        "w-1.5 shrink-0",
+                        product.currentStock <= 0 ? "bg-destructive" :
+                        product.currentStock <= (product.lowStockLimit || 5) ? "bg-amber-500" : "bg-primary"
+                      )} />
+                      <div className="p-4 flex-1 flex flex-col gap-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-bold text-gray-900 leading-tight">{product.name}</h3>
+                            {product.brand && <p className="text-xs text-muted-foreground">{product.brand}</p>}
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-primary">{formatCurrency(product.sellPrice)}</span>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sell Price</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="font-bold text-primary">{formatCurrency(product.sellPrice)}</span>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sell Price</p>
+                        
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-muted/40">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="secondary" className="font-mono text-xs px-2 py-0.5 rounded">
+                              {product.currentStock} {product.unit}
+                            </Badge>
+                            {product.currentStock <= (product.lowStockLimit || 5) && product.currentStock > 0 && (
+                              <span className="flex items-center text-[10px] font-medium text-amber-600 gap-1 bg-amber-50 px-1.5 py-0.5 rounded">
+                                <AlertTriangle className="w-3 h-3" />
+                                Low
+                              </span>
+                            )}
+                            {product.currentStock <= 0 && (
+                              <span className="text-[10px] font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
+                                Out
+                              </span>
+                            )}
+                            {tierCfg && margin && (
+                              <span className={cn(
+                                "text-[10px] font-semibold px-1.5 py-0.5 rounded border",
+                                tierCfg.badgeClass
+                              )}>
+                                {margin.marginPct.toFixed(0)}% · +{formatCurrency(margin.profitPerUnit)}
+                              </span>
+                            )}
+                            {!margin && (
+                              <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                                No cost
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-medium bg-muted/50 px-2 py-1 rounded-md text-muted-foreground shrink-0">
+                            {product.categoryName}
+                          </span>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-muted/40">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="font-mono text-xs px-2 py-0.5 rounded">
-                            {product.currentStock} {product.unit}
-                          </Badge>
-                          {product.currentStock <= (product.lowStockLimit || 5) && (
-                            <span className="flex items-center text-[10px] font-medium text-amber-600 gap-1 bg-amber-50 px-1.5 py-0.5 rounded">
-                              <AlertTriangle className="w-3 h-3" />
-                              Low Stock
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] font-medium bg-muted/50 px-2 py-1 rounded-md text-muted-foreground">
-                          {product.categoryName}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

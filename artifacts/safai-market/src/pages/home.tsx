@@ -14,7 +14,8 @@ import {
   Clock,
   IndianRupee,
   Package,
-  Users
+  Users,
+  BarChart2,
 } from "lucide-react";
 import { formatCurrency, formatTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,15 @@ export default function Home() {
   const { data: lowStock, isLoading: isLoadingLowStock } = useGetLowStockProducts();
   const { data: activity, isLoading: isLoadingActivity } = useGetRecentActivity();
 
+  const marginPct =
+    summary?.todayTotalSales && summary.todayTotalSales > 0 && summary.todayEstimatedProfit != null
+      ? (summary.todayEstimatedProfit / summary.todayTotalSales) * 100
+      : null;
+
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Today's Sales Card */}
-      <Card className="bg-primary text-primary-foreground border-none shadow-md overflow-hidden">
+      <Card className="bg-primary text-primary-foreground border-none shadow-md overflow-hidden relative">
         <div className="absolute top-0 right-0 p-4 opacity-10">
           <TrendingUp className="w-24 h-24" />
         </div>
@@ -64,6 +70,32 @@ export default function Home() {
               <span className="font-semibold">{summary?.todayBillCount || 0}</span>
             </div>
           </div>
+
+          {/* Profit Strip */}
+          {!isLoadingSummary && (summary?.todayEstimatedProfit != null) && (
+            <div className="mt-3 pt-3 border-t border-primary-foreground/20 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <BarChart2 className="w-4 h-4 text-primary-foreground/70" />
+                <span className="text-primary-foreground/70 text-xs font-medium">Est. Profit</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-lg">
+                  {formatCurrency(summary.todayEstimatedProfit)}
+                </span>
+                {marginPct != null && (
+                  <span className="text-[10px] font-semibold bg-primary-foreground/20 px-1.5 py-0.5 rounded-full">
+                    {marginPct.toFixed(1)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {!isLoadingSummary && summary?.todayEstimatedProfit == null && (
+            <div className="mt-3 pt-3 border-t border-primary-foreground/20 flex items-center gap-1.5">
+              <BarChart2 className="w-3.5 h-3.5 text-primary-foreground/40" />
+              <span className="text-primary-foreground/40 text-xs">Add buy prices to track profit</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -95,7 +127,7 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* Udhaar & Supplier Summary */}
+      {/* Udhaar, Supplier, Profit Row */}
       <div className="grid grid-cols-2 gap-3 mt-2">
         <Card className="bg-card shadow-sm">
           <CardContent className="p-3">
@@ -128,6 +160,24 @@ export default function Home() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Profit Report CTA */}
+      <Link href="/profit">
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow active-elevate">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-green-100 text-green-700 w-10 h-10 rounded-xl flex items-center justify-center">
+                <BarChart2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-green-800 text-sm">Profit Report</p>
+                <p className="text-xs text-green-600">View margins by product & category</p>
+              </div>
+            </div>
+            <span className="text-green-600 text-lg font-bold">→</span>
+          </CardContent>
+        </Card>
+      </Link>
 
       {/* Low Stock Preview */}
       <Card className="shadow-sm">
@@ -222,7 +272,6 @@ export default function Home() {
           </div>
         </CardContent>
       </Card>
-
     </div>
   );
 }

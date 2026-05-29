@@ -17,6 +17,77 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Get profit summary for a date range
+ */
+export const GetProfitSummaryQueryParams = zod.object({
+  "from": zod.coerce.string().optional(),
+  "to": zod.coerce.string().optional()
+})
+
+export const GetProfitSummaryResponse = zod.object({
+  "totalSales": zod.number(),
+  "totalProfit": zod.number(),
+  "billCount": zod.number(),
+  "billsWithProfit": zod.number(),
+  "avgMarginPct": zod.number()
+})
+
+
+/**
+ * @summary Get daily profit trend
+ */
+export const GetProfitDailyQueryParams = zod.object({
+  "days": zod.coerce.number().optional()
+})
+
+export const GetProfitDailyResponseItem = zod.object({
+  "date": zod.string(),
+  "sales": zod.number(),
+  "profit": zod.number(),
+  "billCount": zod.number()
+})
+export const GetProfitDailyResponse = zod.array(GetProfitDailyResponseItem)
+
+
+/**
+ * @summary Get profit breakdown by product
+ */
+export const GetProfitByProductQueryParams = zod.object({
+  "from": zod.coerce.string().optional(),
+  "to": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().optional()
+})
+
+export const GetProfitByProductResponseItem = zod.object({
+  "productId": zod.number(),
+  "productName": zod.string(),
+  "quantitySold": zod.number(),
+  "revenue": zod.number(),
+  "profit": zod.number(),
+  "marginPct": zod.number(),
+  "hasProfit": zod.boolean()
+})
+export const GetProfitByProductResponse = zod.array(GetProfitByProductResponseItem)
+
+
+/**
+ * @summary Get profit breakdown by category
+ */
+export const GetProfitByCategoryQueryParams = zod.object({
+  "from": zod.coerce.string().optional(),
+  "to": zod.coerce.string().optional()
+})
+
+export const GetProfitByCategoryResponseItem = zod.object({
+  "category": zod.string(),
+  "revenue": zod.number(),
+  "profit": zod.number(),
+  "marginPct": zod.number()
+})
+export const GetProfitByCategoryResponse = zod.array(GetProfitByCategoryResponseItem)
+
+
+/**
  * @summary Get today's sales summary and business overview
  */
 export const GetDashboardSummaryResponse = zod.object({
@@ -29,7 +100,9 @@ export const GetDashboardSummaryResponse = zod.object({
   "totalOutstandingUdhaar": zod.number(),
   "totalSupplierPending": zod.number(),
   "lowStockCount": zod.number(),
-  "pendingClosingDate": zod.string().nullable()
+  "pendingClosingDate": zod.string().nullable(),
+  "todayEstimatedProfit": zod.number().optional(),
+  "todayBillsWithProfit": zod.number().optional()
 })
 
 

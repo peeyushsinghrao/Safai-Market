@@ -27,15 +27,21 @@ import type {
   CancelBillInput,
   Category,
   CategoryInput,
+  CategoryProfitEntry,
   Customer,
   CustomerDetail,
   CustomerInput,
   CustomerUpdate,
   DailyClosing,
   DailyClosingInput,
+  DailyProfitEntry,
   DashboardSummary,
   Expense,
   ExpenseInput,
+  GetProfitByCategoryParams,
+  GetProfitByProductParams,
+  GetProfitDailyParams,
+  GetProfitSummaryParams,
   HealthStatus,
   ListBillsParams,
   ListCustomersParams,
@@ -47,7 +53,9 @@ import type {
   LowStockProduct,
   Product,
   ProductInput,
+  ProductProfitEntry,
   ProductUpdate,
+  ProfitSummary,
   Purchase,
   PurchaseDetail,
   PurchaseInput,
@@ -140,6 +148,342 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetProfitSummaryUrl = (params?: GetProfitSummaryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/profit/summary?${stringifiedParams}` : `/api/profit/summary`
+}
+
+/**
+ * @summary Get profit summary for a date range
+ */
+export const getProfitSummary = async (params?: GetProfitSummaryParams, options?: RequestInit): Promise<ProfitSummary> => {
+
+  return customFetch<ProfitSummary>(getGetProfitSummaryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfitSummaryQueryKey = (params?: GetProfitSummaryParams,) => {
+    return [
+    `/api/profit/summary`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProfitSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getProfitSummary>>, TError = ErrorType<unknown>>(params?: GetProfitSummaryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfitSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfitSummaryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfitSummary>>> = ({ signal }) => getProfitSummary(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfitSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProfitSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getProfitSummary>>>
+export type GetProfitSummaryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get profit summary for a date range
+ */
+
+export function useGetProfitSummary<TData = Awaited<ReturnType<typeof getProfitSummary>>, TError = ErrorType<unknown>>(
+ params?: GetProfitSummaryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfitSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProfitSummaryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetProfitDailyUrl = (params?: GetProfitDailyParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/profit/daily?${stringifiedParams}` : `/api/profit/daily`
+}
+
+/**
+ * @summary Get daily profit trend
+ */
+export const getProfitDaily = async (params?: GetProfitDailyParams, options?: RequestInit): Promise<DailyProfitEntry[]> => {
+
+  return customFetch<DailyProfitEntry[]>(getGetProfitDailyUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfitDailyQueryKey = (params?: GetProfitDailyParams,) => {
+    return [
+    `/api/profit/daily`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProfitDailyQueryOptions = <TData = Awaited<ReturnType<typeof getProfitDaily>>, TError = ErrorType<unknown>>(params?: GetProfitDailyParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfitDaily>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfitDailyQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfitDaily>>> = ({ signal }) => getProfitDaily(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfitDaily>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProfitDailyQueryResult = NonNullable<Awaited<ReturnType<typeof getProfitDaily>>>
+export type GetProfitDailyQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get daily profit trend
+ */
+
+export function useGetProfitDaily<TData = Awaited<ReturnType<typeof getProfitDaily>>, TError = ErrorType<unknown>>(
+ params?: GetProfitDailyParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfitDaily>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProfitDailyQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetProfitByProductUrl = (params?: GetProfitByProductParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/profit/by-product?${stringifiedParams}` : `/api/profit/by-product`
+}
+
+/**
+ * @summary Get profit breakdown by product
+ */
+export const getProfitByProduct = async (params?: GetProfitByProductParams, options?: RequestInit): Promise<ProductProfitEntry[]> => {
+
+  return customFetch<ProductProfitEntry[]>(getGetProfitByProductUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfitByProductQueryKey = (params?: GetProfitByProductParams,) => {
+    return [
+    `/api/profit/by-product`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProfitByProductQueryOptions = <TData = Awaited<ReturnType<typeof getProfitByProduct>>, TError = ErrorType<unknown>>(params?: GetProfitByProductParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfitByProduct>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfitByProductQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfitByProduct>>> = ({ signal }) => getProfitByProduct(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfitByProduct>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProfitByProductQueryResult = NonNullable<Awaited<ReturnType<typeof getProfitByProduct>>>
+export type GetProfitByProductQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get profit breakdown by product
+ */
+
+export function useGetProfitByProduct<TData = Awaited<ReturnType<typeof getProfitByProduct>>, TError = ErrorType<unknown>>(
+ params?: GetProfitByProductParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfitByProduct>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProfitByProductQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetProfitByCategoryUrl = (params?: GetProfitByCategoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/profit/by-category?${stringifiedParams}` : `/api/profit/by-category`
+}
+
+/**
+ * @summary Get profit breakdown by category
+ */
+export const getProfitByCategory = async (params?: GetProfitByCategoryParams, options?: RequestInit): Promise<CategoryProfitEntry[]> => {
+
+  return customFetch<CategoryProfitEntry[]>(getGetProfitByCategoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfitByCategoryQueryKey = (params?: GetProfitByCategoryParams,) => {
+    return [
+    `/api/profit/by-category`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProfitByCategoryQueryOptions = <TData = Awaited<ReturnType<typeof getProfitByCategory>>, TError = ErrorType<unknown>>(params?: GetProfitByCategoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfitByCategory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfitByCategoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfitByCategory>>> = ({ signal }) => getProfitByCategory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfitByCategory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProfitByCategoryQueryResult = NonNullable<Awaited<ReturnType<typeof getProfitByCategory>>>
+export type GetProfitByCategoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get profit breakdown by category
+ */
+
+export function useGetProfitByCategory<TData = Awaited<ReturnType<typeof getProfitByCategory>>, TError = ErrorType<unknown>>(
+ params?: GetProfitByCategoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfitByCategory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProfitByCategoryQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

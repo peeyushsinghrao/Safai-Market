@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Minus, Trash2, ShoppingCart, CheckCircle2, X, TrendingUp, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, CheckCircle2, X, TrendingUp, ChevronDown, ChevronUp, AlertTriangle, Printer } from "lucide-react";
+import { printReceipt } from "@/lib/receipt";
 import {
   useListProducts,
   useListCustomers,
@@ -42,7 +43,17 @@ export default function Billing() {
   const [cashAmount, setCashAmount] = useState("");
   const [upiAmount, setUpiAmount] = useState("");
   const [notes, setNotes] = useState("");
-  const [billSuccess, setBillSuccess] = useState<{ billNumber: string; profit: number | null } | null>(null);
+  const [billSuccess, setBillSuccess] = useState<{
+    billNumber: string;
+    profit: number | null;
+    totalAmount: number;
+    cashAmount: number;
+    upiAmount: number;
+    udhaarAmount: number;
+    customerName?: string;
+    notes?: string;
+    items: { productName: string; quantity: number; unitPrice: number; totalPrice: number }[];
+  } | null>(null);
   const [showProfitPanel, setShowProfitPanel] = useState(false);
 
   const { data: products, isLoading: loadingProducts } = useListProducts({
@@ -131,10 +142,23 @@ export default function Billing() {
     }, {
       onSuccess: (bill) => {
         const b = bill as any;
+        const selectedCustomer = customers?.find(c => String(c.id) === customerId);
         toast({ title: "Bill created!", description: `Bill ${b.billNumber}` });
         setBillSuccess({
           billNumber: b.billNumber,
           profit: b.estimatedProfit != null ? Number(b.estimatedProfit) : null,
+          totalAmount: cartTotal,
+          cashAmount: cashNum,
+          upiAmount: upiNum,
+          udhaarAmount,
+          customerName: selectedCustomer?.name,
+          notes: notes || undefined,
+          items: cart.map(i => ({
+            productName: i.productName,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            totalPrice: i.quantity * i.unitPrice,
+          })),
         });
         queryClient.invalidateQueries({ queryKey: getListBillsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
@@ -157,13 +181,42 @@ export default function Billing() {
     setShowProfitPanel(false);
   };
 
+  const handlePrint = () => {
+    if (!billSuccess) return;
+    const now = new Date();
+    printReceipt({
+      billNumber: billSuccess.billNumber,
+      date: now.toLocaleDateString("en-IN"),
+      time: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+      items: billSuccess.items,
+      subtotal: billSuccess.totalAmount,
+      totalAmount: billSuccess.totalAmount,
+      cashAmount: billSuccess.cashAmount,
+      upiAmount: billSuccess.upiAmount,
+      udhaarAmount: billSuccess.udhaarAmount,
+      customerName: billSuccess.customerName,
+      notes: billSuccess.notes,
+      estimatedProfit: billSuccess.profit,
+    });
+  };
+
   if (billSuccess) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
         <CheckCircle2 className="w-20 h-20 text-primary mb-4" />
         <h2 className="text-2xl font-bold text-primary mb-1">Bill Created!</h2>
-        <p className="text-muted-foreground text-sm mb-2">Bill Number: <span className="font-mono font-bold">{billSuccess.billNumber}</span></p>
-        <div className="text-3xl font-bold mb-3">{formatCurrency(cartTotal)}</div>
+        <p className="text-muted-foreground text-sm mb-2">
+          Bill Number: <span className="font-mono font-bold">{billSuccess.billNumber}</span>
+        </p>
+        <div className="text-3xl font-bold mb-1">{formatCurrency(billSuccess.totalAmount)}</div>
+
+        {/* Payment breakdown */}
+        <div className="flex gap-3 text-sm text-muted-foreground mb-3">
+          {billSuccess.cashAmount > 0 && <span>Cash {formatCurrency(billSuccess.cashAmount)}</span>}
+          {billSuccess.upiAmount > 0 && <span>UPI {formatCurrency(billSuccess.upiAmount)}</span>}
+          {billSuccess.udhaarAmount > 0 && <span className="text-amber-600 font-medium">Udhaar {formatCurrency(billSuccess.udhaarAmount)}</span>}
+        </div>
+
         {billSuccess.profit != null && (
           <div className={cn(
             "rounded-lg border px-4 py-2 mb-6 text-sm font-semibold",
@@ -175,6 +228,16 @@ export default function Billing() {
             Est. Profit: {formatCurrency(billSuccess.profit)}
           </div>
         )}
+
+        <Button
+          variant="outline"
+          className="w-full h-12 mb-3 gap-2 border-dashed"
+          onClick={handlePrint}
+        >
+          <Printer className="w-5 h-5" />
+          Print Receipt (58mm)
+        </Button>
+
         <Button className="w-full h-12 text-lg active-elevate mb-3" onClick={resetBill} data-testid="button-new-bill">
           <Plus className="w-5 h-5 mr-2" /> New Bill
         </Button>

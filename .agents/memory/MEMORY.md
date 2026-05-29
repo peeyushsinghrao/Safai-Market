@@ -1,0 +1,2 @@
+- [Drizzle inArray vs ANY](drizzle-inarray.md) — always use `inArray()` from drizzle-orm for `WHERE id = ANY(array)`, never raw `sql\`ANY(${arr})\``
+- [Profit system architecture](profit-system.md) — buy_price_snapshot/profit_amount on bill_items, estimated_profit on bills; profit hooks live in /profit/* API routes; seed via `pnpm dlx tsx artifacts/api-server/src/scripts/seed-demo.ts`

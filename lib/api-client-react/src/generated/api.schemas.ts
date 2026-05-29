@@ -5,6 +5,38 @@
  * Safai Market — Anupurna Traders store management API
  * OpenAPI spec version: 0.1.0
  */
+export interface ProfitSummary {
+  totalSales: number;
+  totalProfit: number;
+  billCount: number;
+  billsWithProfit: number;
+  avgMarginPct: number;
+}
+
+export interface DailyProfitEntry {
+  date: string;
+  sales: number;
+  profit: number;
+  billCount: number;
+}
+
+export interface ProductProfitEntry {
+  productId: number;
+  productName: string;
+  quantitySold: number;
+  revenue: number;
+  profit: number;
+  marginPct: number;
+  hasProfit: boolean;
+}
+
+export interface CategoryProfitEntry {
+  category: string;
+  revenue: number;
+  profit: number;
+  marginPct: number;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -21,6 +53,8 @@ export interface DashboardSummary {
   lowStockCount: number;
   /** @nullable */
   pendingClosingDate: string | null;
+  todayEstimatedProfit?: number;
+  todayBillsWithProfit?: number;
 }
 
 export interface LowStockProduct {
@@ -601,6 +635,26 @@ export interface DailyClosingInput {
   actualCash: number;
   notes?: string;
 }
+
+export type GetProfitSummaryParams = {
+from?: string;
+to?: string;
+};
+
+export type GetProfitDailyParams = {
+days?: number;
+};
+
+export type GetProfitByProductParams = {
+from?: string;
+to?: string;
+limit?: number;
+};
+
+export type GetProfitByCategoryParams = {
+from?: string;
+to?: string;
+};
 
 export type ListProductsParams = {
 search?: string;
