@@ -29,40 +29,63 @@ import BillsHistory from "./pages/bills/index";
 
 const queryClient = new QueryClient();
 
+const HomePage = () => <Layout><Home /></Layout>;
+const ProductsListPage = () => <Layout><ProductsList /></Layout>;
+const ProductNewPage = () => <Layout><ProductNew /></Layout>;
+const ProductDetailPage = () => <Layout><ProductDetail /></Layout>;
+const BillingPage = () => <Layout><Billing /></Layout>;
+const CustomersListPage = () => <Layout><CustomersList /></Layout>;
+const CustomerNewPage = () => <Layout><CustomerNew /></Layout>;
+const CustomerDetailPage = () => <Layout><CustomerDetail /></Layout>;
+const SuppliersListPage = () => <Layout><SuppliersList /></Layout>;
+const SupplierNewPage = () => <Layout><SupplierNew /></Layout>;
+const SupplierDetailPage = () => <Layout><SupplierDetail /></Layout>;
+const PurchasesListPage = () => <Layout><PurchasesList /></Layout>;
+const PurchaseNewPage = () => <Layout><PurchaseNew /></Layout>;
+const ExpensesListPage = () => <Layout><ExpensesList /></Layout>;
+const ExpenseNewPage = () => <Layout><ExpenseNew /></Layout>;
+const DailyClosingPage = () => <Layout><DailyClosing /></Layout>;
+const LowStockPage = () => <Layout><LowStock /></Layout>;
+const StockMovementsPage = () => <Layout><StockMovements /></Layout>;
+const MoreMenuPage = () => <Layout><MoreMenu /></Layout>;
+const ProfitReportsPage = () => <Layout><ProfitReports /></Layout>;
+const BillsHistoryPage = () => <Layout><BillsHistory /></Layout>;
+const NotFoundPage = () => <Layout><NotFound /></Layout>;
+
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={() => <Layout><Home /></Layout>} />
-      
-      <Route path="/products" component={() => <Layout><ProductsList /></Layout>} />
-      <Route path="/products/new" component={() => <Layout><ProductNew /></Layout>} />
-      <Route path="/products/:id" component={() => <Layout><ProductDetail /></Layout>} />
-      
-      <Route path="/billing" component={() => <Layout><Billing /></Layout>} />
-      
-      <Route path="/customers" component={() => <Layout><CustomersList /></Layout>} />
-      <Route path="/customers/new" component={() => <Layout><CustomerNew /></Layout>} />
-      <Route path="/customers/:id" component={() => <Layout><CustomerDetail /></Layout>} />
-      
-      <Route path="/suppliers" component={() => <Layout><SuppliersList /></Layout>} />
-      <Route path="/suppliers/new" component={() => <Layout><SupplierNew /></Layout>} />
-      <Route path="/suppliers/:id" component={() => <Layout><SupplierDetail /></Layout>} />
-      
-      <Route path="/purchases" component={() => <Layout><PurchasesList /></Layout>} />
-      <Route path="/purchases/new" component={() => <Layout><PurchaseNew /></Layout>} />
-      
-      <Route path="/expenses" component={() => <Layout><ExpensesList /></Layout>} />
-      <Route path="/expenses/new" component={() => <Layout><ExpenseNew /></Layout>} />
-      
-      <Route path="/daily-closing" component={() => <Layout><DailyClosing /></Layout>} />
-      <Route path="/low-stock" component={() => <Layout><LowStock /></Layout>} />
-      <Route path="/stock-movements" component={() => <Layout><StockMovements /></Layout>} />
-      
-      <Route path="/more" component={() => <Layout><MoreMenu /></Layout>} />
-      <Route path="/profit" component={() => <Layout><ProfitReports /></Layout>} />
-      <Route path="/bills" component={() => <Layout><BillsHistory /></Layout>} />
-      
-      <Route component={() => <Layout><NotFound /></Layout>} />
+      <Route path="/" component={HomePage} />
+
+      <Route path="/products" component={ProductsListPage} />
+      <Route path="/products/new" component={ProductNewPage} />
+      <Route path="/products/:id" component={ProductDetailPage} />
+
+      <Route path="/billing" component={BillingPage} />
+
+      <Route path="/customers" component={CustomersListPage} />
+      <Route path="/customers/new" component={CustomerNewPage} />
+      <Route path="/customers/:id" component={CustomerDetailPage} />
+
+      <Route path="/suppliers" component={SuppliersListPage} />
+      <Route path="/suppliers/new" component={SupplierNewPage} />
+      <Route path="/suppliers/:id" component={SupplierDetailPage} />
+
+      <Route path="/purchases" component={PurchasesListPage} />
+      <Route path="/purchases/new" component={PurchaseNewPage} />
+
+      <Route path="/expenses" component={ExpensesListPage} />
+      <Route path="/expenses/new" component={ExpenseNewPage} />
+
+      <Route path="/daily-closing" component={DailyClosingPage} />
+      <Route path="/low-stock" component={LowStockPage} />
+      <Route path="/stock-movements" component={StockMovementsPage} />
+
+      <Route path="/more" component={MoreMenuPage} />
+      <Route path="/profit" component={ProfitReportsPage} />
+      <Route path="/bills" component={BillsHistoryPage} />
+
+      <Route component={NotFoundPage} />
     </Switch>
   );
 }
