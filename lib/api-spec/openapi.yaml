@@ -1064,6 +1064,8 @@ components:
           type: number
         discountAmount:
           type: number
+        estimatedProfit:
+          type: ["number", "null"]
         status:
           type: string
           enum: [active, cancelled]
@@ -1096,6 +1098,8 @@ components:
           type: number
         discountAmount:
           type: number
+        estimatedProfit:
+          type: ["number", "null"]
         status:
           type: string
           enum: [active, cancelled]
@@ -1128,6 +1132,10 @@ components:
           type: number
         discountAmount:
           type: number
+        buyPriceSnapshot:
+          type: ["number", "null"]
+        profitAmount:
+          type: ["number", "null"]
 
     BillInput:
       type: object

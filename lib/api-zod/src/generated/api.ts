@@ -305,6 +305,7 @@ export const ListBillsResponseItem = zod.object({
   "upiAmount": zod.number(),
   "udhaarAmount": zod.number(),
   "discountAmount": zod.number().optional(),
+  "estimatedProfit": zod.number().nullish(),
   "status": zod.enum(['active', 'cancelled']),
   "notes": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -350,6 +351,7 @@ export const GetBillResponse = zod.object({
   "upiAmount": zod.number(),
   "udhaarAmount": zod.number(),
   "discountAmount": zod.number().optional(),
+  "estimatedProfit": zod.number().nullish(),
   "status": zod.enum(['active', 'cancelled']),
   "cancelReason": zod.string().nullish(),
   "notes": zod.string().nullish(),
@@ -361,7 +363,9 @@ export const GetBillResponse = zod.object({
   "quantity": zod.number(),
   "unitPrice": zod.number(),
   "totalPrice": zod.number(),
-  "discountAmount": zod.number().optional()
+  "discountAmount": zod.number().optional(),
+  "buyPriceSnapshot": zod.number().nullish(),
+  "profitAmount": zod.number().nullish()
 }))
 })
 
@@ -387,6 +391,7 @@ export const CancelBillResponse = zod.object({
   "upiAmount": zod.number(),
   "udhaarAmount": zod.number(),
   "discountAmount": zod.number().optional(),
+  "estimatedProfit": zod.number().nullish(),
   "status": zod.enum(['active', 'cancelled']),
   "notes": zod.string().nullish(),
   "createdAt": zod.string(),

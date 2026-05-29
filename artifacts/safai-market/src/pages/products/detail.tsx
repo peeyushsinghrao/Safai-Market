@@ -10,6 +10,7 @@ import {
   getListProductsQueryKey
 } from "@workspace/api-client-react";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
+import { computeMargin, MARGIN_TIER_CONFIG } from "@/lib/profit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -116,13 +117,32 @@ export default function ProductDetail() {
             <div className="grid grid-cols-2 gap-4 py-4 border-y border-muted/50 mb-4">
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Buy Price</p>
-                <p className="font-semibold">{formatCurrency(product.buyPrice)}</p>
+                <p className="font-semibold">{Number(product.buyPrice) > 0 ? formatCurrency(Number(product.buyPrice)) : <span className="text-muted-foreground text-sm">Not set</span>}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">MRP</p>
-                <p className="font-semibold">{product.mrp ? formatCurrency(product.mrp) : "N/A"}</p>
+                <p className="font-semibold">{product.mrp ? formatCurrency(Number(product.mrp)) : <span className="text-muted-foreground text-sm">N/A</span>}</p>
               </div>
             </div>
+
+            {/* Margin Badge */}
+            {(() => {
+              const margin = computeMargin(Number(product.buyPrice), Number(product.sellPrice));
+              if (!margin) return null;
+              const cfg = MARGIN_TIER_CONFIG[margin.tier];
+              return (
+                <div className={cn("rounded-lg border px-3 py-2.5 flex items-center justify-between mb-4", cfg.badgeClass)}>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider opacity-70">Margin</p>
+                    <p className="text-sm font-bold">{cfg.label}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold">{margin.marginPct.toFixed(1)}%</p>
+                    <p className="text-xs opacity-80">₹{margin.profitPerUnit.toFixed(0)} profit/unit</p>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Stock Level Display */}
             <div className="bg-card border rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden">

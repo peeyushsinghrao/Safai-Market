@@ -174,6 +174,8 @@ export interface Bill {
   upiAmount: number;
   udhaarAmount: number;
   discountAmount?: number;
+  /** @nullable */
+  estimatedProfit?: number | null;
   status: BillStatus;
   /** @nullable */
   notes?: string | null;
@@ -197,6 +199,10 @@ export interface BillLineItem {
   unitPrice: number;
   totalPrice: number;
   discountAmount?: number;
+  /** @nullable */
+  buyPriceSnapshot?: number | null;
+  /** @nullable */
+  profitAmount?: number | null;
 }
 
 export interface BillDetail {
@@ -211,6 +217,8 @@ export interface BillDetail {
   upiAmount: number;
   udhaarAmount: number;
   discountAmount?: number;
+  /** @nullable */
+  estimatedProfit?: number | null;
   status: BillDetailStatus;
   /** @nullable */
   cancelReason?: string | null;

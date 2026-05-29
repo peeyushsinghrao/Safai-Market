@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { ChevronLeft } from "lucide-react";
 import { useCreateProduct, useListCategories } from "@workspace/api-client-react";
@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { computeMargin, MARGIN_TIER_CONFIG } from "@/lib/profit";
+import { cn } from "@/lib/utils";
 
 export default function ProductNew() {
   const [, setLocation] = useLocation();
@@ -15,13 +17,20 @@ export default function ProductNew() {
 
   const [formData, setFormData] = useState({
     name: "", brand: "", categoryId: "", unit: "",
-    sellPrice: "", buyPrice: "", lowStockLimit: "5",
-    initialStock: "0", hinglishAliases: ""
+    sellPrice: "", buyPrice: "", mrp: "", wholesalePrice: "",
+    lowStockLimit: "5", initialStock: "0", hinglishAliases: ""
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
+  const marginInfo = useMemo(() => {
+    return computeMargin(
+      formData.buyPrice ? Number(formData.buyPrice) : null,
+      formData.sellPrice ? Number(formData.sellPrice) : null
+    );
+  }, [formData.buyPrice, formData.sellPrice]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +47,8 @@ export default function ProductNew() {
         unit: formData.unit || "piece",
         sellPrice: Number(formData.sellPrice),
         buyPrice: formData.buyPrice ? Number(formData.buyPrice) : 0,
+        mrp: formData.mrp ? Number(formData.mrp) : undefined,
+        wholesalePrice: formData.wholesalePrice ? Number(formData.wholesalePrice) : undefined,
         lowStockLimit: Number(formData.lowStockLimit),
         initialStock: Number(formData.initialStock),
         hinglishAliases: formData.hinglishAliases || undefined
@@ -88,15 +99,52 @@ export default function ProductNew() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-muted-foreground">Sell Price (₹) *</label>
-            <Input type="number" name="sellPrice" value={formData.sellPrice} onChange={handleChange} required className="h-12" />
+        {/* Pricing Section */}
+        <div className="rounded-xl border bg-white p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pricing</h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Buy Price / Cost (₹)</label>
+              <Input type="number" name="buyPrice" value={formData.buyPrice} onChange={handleChange} placeholder="0" className="h-12" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Sell Price (₹) *</label>
+              <Input type="number" name="sellPrice" value={formData.sellPrice} onChange={handleChange} required placeholder="0" className="h-12" />
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-muted-foreground">Buy Price (₹)</label>
-            <Input type="number" name="buyPrice" value={formData.buyPrice} onChange={handleChange} className="h-12" />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">MRP (₹)</label>
+              <Input type="number" name="mrp" value={formData.mrp} onChange={handleChange} placeholder="Optional" className="h-12" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Wholesale Price (₹)</label>
+              <Input type="number" name="wholesalePrice" value={formData.wholesalePrice} onChange={handleChange} placeholder="Optional" className="h-12" />
+            </div>
           </div>
+
+          {/* Live Margin Preview */}
+          {marginInfo ? (
+            <div className={cn(
+              "rounded-lg border px-3 py-2.5 flex items-center justify-between",
+              MARGIN_TIER_CONFIG[marginInfo.tier].badgeClass
+            )}>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-70">Estimated Margin</p>
+                <p className="text-sm font-bold">{MARGIN_TIER_CONFIG[marginInfo.tier].label}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold">{marginInfo.marginPct.toFixed(1)}%</p>
+                <p className="text-xs opacity-80">₹{marginInfo.profitPerUnit.toFixed(0)} / unit</p>
+              </div>
+            </div>
+          ) : formData.buyPrice && !formData.sellPrice ? (
+            <p className="text-xs text-muted-foreground text-center py-1">Enter sell price to see margin</p>
+          ) : formData.sellPrice && !formData.buyPrice ? (
+            <p className="text-xs text-muted-foreground text-center py-1">Enter buy price to see margin</p>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-2 gap-4">

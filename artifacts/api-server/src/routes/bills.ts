@@ -118,11 +118,19 @@ router.post("/bills", async (req, res): Promise<void> => {
   }).returning();
 
   // Insert items, update stock, log movements
+  let totalEstimatedProfit = 0;
   for (const item of items) {
     const [product] = await db.select().from(productsTable).where(eq(productsTable.id, item.productId));
     const stockBefore = Number(product!.currentStock);
     const stockAfter = stockBefore - Number(item.quantity);
     const totalPrice = Number(item.quantity) * Number(item.unitPrice) - Number(item.discountAmount ?? 0);
+
+    const buyPriceSnapshot = product!.buyPrice != null ? Number(product!.buyPrice) : null;
+    let profitAmount: number | null = null;
+    if (buyPriceSnapshot != null) {
+      profitAmount = (Number(item.unitPrice) - buyPriceSnapshot) * Number(item.quantity) - Number(item.discountAmount ?? 0);
+      totalEstimatedProfit += profitAmount;
+    }
 
     await db.insert(billItemsTable).values({
       billId: bill.id,
@@ -132,6 +140,8 @@ router.post("/bills", async (req, res): Promise<void> => {
       unitPrice: String(item.unitPrice),
       totalPrice: String(totalPrice),
       discountAmount: String(item.discountAmount ?? 0),
+      buyPriceSnapshot: buyPriceSnapshot != null ? String(buyPriceSnapshot) : null,
+      profitAmount: profitAmount != null ? String(profitAmount) : null,
     });
 
     await db.update(productsTable)
@@ -165,13 +175,20 @@ router.post("/bills", async (req, res): Promise<void> => {
     });
   }
 
+  // Update bill with computed estimated profit
+  const [updatedBill] = await db
+    .update(billsTable)
+    .set({ estimatedProfit: String(totalEstimatedProfit) })
+    .where(eq(billsTable.id, bill.id))
+    .returning();
+
   await db.insert(activityLogTable).values({
     eventType: "bill_created",
     description: `Bill ${bill.billNumber} - ₹${totalAmount}${customerName ? ` (${customerName})` : ""}`,
     amount: String(totalAmount),
   });
 
-  res.status(201).json({ ...bill, itemCount: items.length });
+  res.status(201).json({ ...updatedBill, itemCount: items.length });
 });
 
 router.get("/bills/:id", async (req, res): Promise<void> => {

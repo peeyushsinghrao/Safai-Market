@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Minus, Trash2, ShoppingCart, CheckCircle2, X } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, CheckCircle2, X, TrendingUp, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import {
   useListProducts,
   useListCustomers,
@@ -20,12 +20,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { calculateBillProfit, computeMargin, MARGIN_TIER_CONFIG } from "@/lib/profit";
 
 interface CartItem {
   productId: number;
   productName: string;
   quantity: number;
   unitPrice: number;
+  buyPrice: number | null;
 }
 
 export default function Billing() {
@@ -40,7 +42,8 @@ export default function Billing() {
   const [cashAmount, setCashAmount] = useState("");
   const [upiAmount, setUpiAmount] = useState("");
   const [notes, setNotes] = useState("");
-  const [billSuccess, setBillSuccess] = useState<string | null>(null);
+  const [billSuccess, setBillSuccess] = useState<{ billNumber: string; profit: number | null } | null>(null);
+  const [showProfitPanel, setShowProfitPanel] = useState(false);
 
   const { data: products, isLoading: loadingProducts } = useListProducts({
     search: search.length >= 2 ? search : undefined,
@@ -53,13 +56,33 @@ export default function Billing() {
   const upiNum = Number(upiAmount) || 0;
   const udhaarAmount = Math.max(0, cartTotal - cashNum - upiNum);
 
-  const addToCart = (product: { id: number; name: string; sellPrice: number | string }) => {
+  const profitSummary = useMemo(() => {
+    return calculateBillProfit(
+      cart.map(item => ({
+        buyPrice: item.buyPrice,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        discountAmount: 0,
+      }))
+    );
+  }, [cart]);
+
+  const addToCart = (product: { id: number; name: string; sellPrice: number | string; buyPrice?: number | string | null }) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.productId === product.id);
       if (existing) {
         return prev.map((i) => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { productId: product.id, productName: product.name, quantity: 1, unitPrice: Number(product.sellPrice) }];
+      const buyPrice = product.buyPrice != null && Number(product.buyPrice) > 0
+        ? Number(product.buyPrice)
+        : null;
+      return [...prev, {
+        productId: product.id,
+        productName: product.name,
+        quantity: 1,
+        unitPrice: Number(product.sellPrice),
+        buyPrice,
+      }];
     });
     setSearch("");
   };
@@ -107,8 +130,12 @@ export default function Billing() {
       },
     }, {
       onSuccess: (bill) => {
-        toast({ title: "Bill created!", description: `Bill ${(bill as any).billNumber}` });
-        setBillSuccess((bill as any).billNumber);
+        const b = bill as any;
+        toast({ title: "Bill created!", description: `Bill ${b.billNumber}` });
+        setBillSuccess({
+          billNumber: b.billNumber,
+          profit: b.estimatedProfit != null ? Number(b.estimatedProfit) : null,
+        });
         queryClient.invalidateQueries({ queryKey: getListBillsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
@@ -127,6 +154,7 @@ export default function Billing() {
     setCustomerId("");
     setSearch("");
     setBillSuccess(null);
+    setShowProfitPanel(false);
   };
 
   if (billSuccess) {
@@ -134,8 +162,19 @@ export default function Billing() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
         <CheckCircle2 className="w-20 h-20 text-primary mb-4" />
         <h2 className="text-2xl font-bold text-primary mb-1">Bill Created!</h2>
-        <p className="text-muted-foreground text-sm mb-2">Bill Number: <span className="font-mono font-bold">{billSuccess}</span></p>
-        <div className="text-3xl font-bold mb-6">{formatCurrency(cartTotal)}</div>
+        <p className="text-muted-foreground text-sm mb-2">Bill Number: <span className="font-mono font-bold">{billSuccess.billNumber}</span></p>
+        <div className="text-3xl font-bold mb-3">{formatCurrency(cartTotal)}</div>
+        {billSuccess.profit != null && (
+          <div className={cn(
+            "rounded-lg border px-4 py-2 mb-6 text-sm font-semibold",
+            billSuccess.profit >= 0
+              ? "bg-green-50 text-green-700 border-green-200"
+              : "bg-red-50 text-red-700 border-red-200"
+          )}>
+            <TrendingUp className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+            Est. Profit: {formatCurrency(billSuccess.profit)}
+          </div>
+        )}
         <Button className="w-full h-12 text-lg active-elevate mb-3" onClick={resetBill} data-testid="button-new-bill">
           <Plus className="w-5 h-5 mr-2" /> New Bill
         </Button>
@@ -211,39 +250,119 @@ export default function Billing() {
         ) : (
           <Card className="shadow-sm">
             <CardContent className="p-0 divide-y">
-              {cart.map((item) => (
-                <div key={item.productId} className="p-3 flex items-center gap-3" data-testid={`cart-item-${item.productId}`}>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">{item.productName}</div>
-                    <div className="text-xs text-muted-foreground">{formatCurrency(item.unitPrice)} each</div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => updateQty(item.productId, -1)} data-testid={`button-qty-minus-${item.productId}`}>
-                      <Minus className="w-3 h-3" />
+              {cart.map((item) => {
+                const margin = computeMargin(item.buyPrice, item.unitPrice);
+                return (
+                  <div key={item.productId} className="p-3 flex items-center gap-3" data-testid={`cart-item-${item.productId}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{item.productName}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{formatCurrency(item.unitPrice)} each</span>
+                        {margin && (
+                          <span className={cn(
+                            "text-[10px] font-semibold px-1.5 py-0.5 rounded-full border",
+                            MARGIN_TIER_CONFIG[margin.tier].badgeClass
+                          )}>
+                            {margin.marginPct.toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => updateQty(item.productId, -1)} data-testid={`button-qty-minus-${item.productId}`}>
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                      <span className="w-8 text-center font-bold text-sm">{item.quantity}</span>
+                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => updateQty(item.productId, 1)} data-testid={`button-qty-plus-${item.productId}`}>
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="text-right w-16">
+                      <div className="font-bold text-sm">{formatCurrency(item.quantity * item.unitPrice)}</div>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive" onClick={() => removeFromCart(item.productId)} data-testid={`button-remove-${item.productId}`}>
+                      <Trash2 className="w-4 h-4" />
                     </Button>
-                    <span className="w-8 text-center font-bold text-sm">{item.quantity}</span>
-                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => updateQty(item.productId, 1)} data-testid={`button-qty-plus-${item.productId}`}>
-                      <Plus className="w-3 h-3" />
-                    </Button>
                   </div>
-                  <div className="text-right w-16">
-                    <div className="font-bold text-sm">{formatCurrency(item.quantity * item.unitPrice)}</div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive" onClick={() => removeFromCart(item.productId)} data-testid={`button-remove-${item.productId}`}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         )}
 
         {cart.length > 0 && (
           <>
-            {/* Total */}
-            <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex justify-between items-center">
-              <span className="font-bold text-primary">Total</span>
-              <span className="text-2xl font-bold text-primary" data-testid="text-cart-total">{formatCurrency(cartTotal)}</span>
+            {/* Total + Profit Summary */}
+            <div className="space-y-2">
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex justify-between items-center">
+                <span className="font-bold text-primary">Total</span>
+                <span className="text-2xl font-bold text-primary" data-testid="text-cart-total">{formatCurrency(cartTotal)}</span>
+              </div>
+
+              {/* Profit Panel Toggle */}
+              {profitSummary.totalProfit != null && (
+                <button
+                  className="w-full"
+                  onClick={() => setShowProfitPanel(p => !p)}
+                >
+                  <div className={cn(
+                    "rounded-xl border px-4 py-3 flex items-center justify-between transition-colors",
+                    profitSummary.totalProfit >= 0
+                      ? "bg-green-50 border-green-200"
+                      : "bg-red-50 border-red-200"
+                  )}>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className={cn("w-4 h-4", profitSummary.totalProfit >= 0 ? "text-green-600" : "text-red-600")} />
+                      <span className={cn("text-sm font-semibold", profitSummary.totalProfit >= 0 ? "text-green-700" : "text-red-700")}>
+                        Est. Profit: {formatCurrency(profitSummary.totalProfit)}
+                      </span>
+                      {profitSummary.hasUntracked && (
+                        <span className="text-[10px] text-amber-600 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                          Partial
+                        </span>
+                      )}
+                    </div>
+                    {showProfitPanel
+                      ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                      : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    }
+                  </div>
+                </button>
+              )}
+
+              {/* Expanded Profit Breakdown */}
+              {showProfitPanel && (
+                <Card className="shadow-sm">
+                  <CardContent className="p-3 space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Profit Breakdown (Estimated)</p>
+                    {cart.map(item => {
+                      if (item.buyPrice == null) {
+                        return (
+                          <div key={item.productId} className="flex justify-between items-center py-1">
+                            <span className="text-xs text-muted-foreground truncate flex-1 pr-2">{item.productName}</span>
+                            <span className="text-xs text-gray-400">No cost data</span>
+                          </div>
+                        );
+                      }
+                      const itemProfit = (item.unitPrice - item.buyPrice) * item.quantity;
+                      return (
+                        <div key={item.productId} className="flex justify-between items-center py-1">
+                          <span className="text-xs text-muted-foreground truncate flex-1 pr-2">{item.productName} ×{item.quantity}</span>
+                          <span className={cn("text-xs font-semibold", itemProfit >= 0 ? "text-green-700" : "text-red-700")}>
+                            {itemProfit >= 0 ? "+" : ""}{formatCurrency(itemProfit)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {profitSummary.hasUntracked && (
+                      <p className="text-[10px] text-amber-600 flex items-center gap-1 pt-1 border-t border-amber-100">
+                        <AlertTriangle className="w-3 h-3" />
+                        Some items have no buy price — profit is partial
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Payment Split */}

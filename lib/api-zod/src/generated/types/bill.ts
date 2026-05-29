@@ -19,6 +19,8 @@ export interface Bill {
   upiAmount: number;
   udhaarAmount: number;
   discountAmount?: number;
+  /** @nullable */
+  estimatedProfit?: number | null;
   status: BillStatus;
   /** @nullable */
   notes?: string | null;

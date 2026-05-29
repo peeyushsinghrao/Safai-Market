@@ -14,4 +14,8 @@ export interface BillLineItem {
   unitPrice: number;
   totalPrice: number;
   discountAmount?: number;
+  /** @nullable */
+  buyPriceSnapshot?: number | null;
+  /** @nullable */
+  profitAmount?: number | null;
 }

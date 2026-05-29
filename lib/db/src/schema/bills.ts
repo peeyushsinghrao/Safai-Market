@@ -12,6 +12,7 @@ export const billsTable = pgTable("bills", {
   upiAmount: numeric("upi_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   udhaarAmount: numeric("udhaar_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  estimatedProfit: numeric("estimated_profit", { precision: 10, scale: 2 }),
   status: text("status").notNull().default("active"), // active | cancelled
   cancelReason: text("cancel_reason"),
   notes: text("notes"),
@@ -27,6 +28,8 @@ export const billItemsTable = pgTable("bill_items", {
   unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
   totalPrice: numeric("total_price", { precision: 10, scale: 2 }).notNull(),
   discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  buyPriceSnapshot: numeric("buy_price_snapshot", { precision: 10, scale: 2 }),
+  profitAmount: numeric("profit_amount", { precision: 10, scale: 2 }),
 });
 
 export const insertBillSchema = createInsertSchema(billsTable).omit({ id: true, createdAt: true });
