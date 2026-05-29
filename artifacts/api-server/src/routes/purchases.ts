@@ -5,8 +5,7 @@ import {
   CreatePurchaseBody,
   GetPurchaseParams,
 } from "@workspace/api-zod";
-import { eq, desc } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { eq, desc, inArray, sql } from "drizzle-orm";
 
 function generatePurchaseNumber(): string {
   const now = new Date();
@@ -41,7 +40,7 @@ router.get("/purchases", async (req, res): Promise<void> => {
     const counts = await db
       .select({ purchaseId: purchaseItemsTable.purchaseId, count: sql<number>`count(*)::int` })
       .from(purchaseItemsTable)
-      .where(sql`${purchaseItemsTable.purchaseId} = ANY(${purchaseIds})`)
+      .where(inArray(purchaseItemsTable.purchaseId, purchaseIds))
       .groupBy(purchaseItemsTable.purchaseId);
     itemCounts = Object.fromEntries(counts.map((c) => [c.purchaseId, c.count]));
   }

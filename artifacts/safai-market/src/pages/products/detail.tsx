@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, Edit, AlertTriangle, ArrowDown, ArrowUp, Plus, Minus, Package, History } from "lucide-react";
+import { Edit, AlertTriangle, ArrowDown, ArrowUp, Plus, Minus, Package, History } from "lucide-react";
+import PageHeader from "@/components/page-header";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -85,18 +86,16 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50/50 pb-20">
-      <div className="sticky top-14 z-30 bg-primary text-primary-foreground border-b border-primary-foreground/20 p-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 h-8 w-8" onClick={() => setLocation("/products")}>
-            <ChevronLeft className="w-5 h-5" />
+    <div className="flex flex-col min-h-full bg-gray-50/50 pb-20">
+      <PageHeader
+        title={product.name}
+        backTo="/products"
+        right={
+          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 h-9 w-9 rounded-xl" onClick={() => toast({ title: "Edit product (WIP)" })}>
+            <Edit className="w-4 h-4" />
           </Button>
-          <h1 className="font-bold text-lg truncate pr-4">{product.name}</h1>
-        </div>
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 h-8 w-8" onClick={() => toast({ title: "Edit product (WIP)" })}>
-          <Edit className="w-4 h-4" />
-        </Button>
-      </div>
+        }
+      />
 
       <div className="p-4 space-y-4">
         {/* Main Details */}

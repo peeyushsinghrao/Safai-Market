@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "wouter";
 import { 
   Truck, ShoppingCart, Receipt, BookOpen, Package, TrendingDown,
-  BarChart2, Printer
+  BarChart2, FileText
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -11,6 +11,7 @@ const menuSections = [
     title: "Reports & Insights",
     items: [
       { href: "/profit", label: "Profit Report", sub: "Margins by product & category", icon: BarChart2, color: "bg-green-100 text-green-700" },
+      { href: "/bills", label: "Bills History", sub: "View & reprint past bills", icon: FileText, color: "bg-indigo-100 text-indigo-700" },
       { href: "/daily-closing", label: "Daily Closing", sub: "End-of-day summary", icon: BookOpen, color: "bg-blue-100 text-blue-700" },
       { href: "/stock-movements", label: "Stock Movements", sub: "In / out history", icon: TrendingDown, color: "bg-purple-100 text-purple-700" },
       { href: "/low-stock", label: "Finishing Stock", sub: "Items running low", icon: Package, color: "bg-amber-100 text-amber-700" },

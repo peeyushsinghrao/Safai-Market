@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, IndianRupee, Phone, Calendar, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { IndianRupee, Phone, Calendar, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import PageHeader from "@/components/page-header";
 import { 
   useGetCustomer, 
   useReceiveCustomerPayment,
@@ -77,13 +78,8 @@ export default function CustomerDetail() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50/50 pb-20">
-      <div className="sticky top-14 z-30 bg-primary text-primary-foreground border-b p-4 flex items-center shadow-sm">
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 h-8 w-8 mr-2" onClick={() => setLocation("/customers")}>
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-        <h1 className="font-bold text-lg">{customer.name}</h1>
-      </div>
+    <div className="flex flex-col min-h-full bg-gray-50/50 pb-20">
+      <PageHeader title={customer.name} backTo="/customers" />
 
       <div className="p-4 space-y-4">
         <Card className="shadow-sm">

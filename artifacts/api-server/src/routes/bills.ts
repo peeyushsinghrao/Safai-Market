@@ -7,8 +7,7 @@ import {
   CancelBillParams,
   CancelBillBody,
 } from "@workspace/api-zod";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, inArray, sql } from "drizzle-orm";
 
 function generateBillNumber(): string {
   const now = new Date();
@@ -53,7 +52,7 @@ router.get("/bills", async (req, res): Promise<void> => {
     const counts = await db
       .select({ billId: billItemsTable.billId, count: sql<number>`count(*)::int` })
       .from(billItemsTable)
-      .where(sql`${billItemsTable.billId} = ANY(${billIds})`)
+      .where(inArray(billItemsTable.billId, billIds))
       .groupBy(billItemsTable.billId);
     itemCounts = Object.fromEntries(counts.map((c) => [c.billId, c.count]));
   }

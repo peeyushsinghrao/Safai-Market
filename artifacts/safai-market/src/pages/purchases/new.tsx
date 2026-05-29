@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft, Plus, Minus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useListSuppliers, useListProducts, useCreatePurchase, getListPurchasesQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/format";
+import PageHeader from "@/components/page-header";
+import { FormCard, FormField } from "@/components/form-card";
 
 export default function PurchaseNew() {
   const [, setLocation] = useLocation();
@@ -31,6 +33,7 @@ export default function PurchaseNew() {
   const [freeQty, setFreeQty] = useState("0");
 
   const totalAmount = useMemo(() => items.reduce((sum, item) => sum + (item.quantity * item.unitCost), 0), [items]);
+  const pendingAmount = Math.max(0, totalAmount - (Number(paidAmount) || 0));
 
   const addItem = () => {
     if (!selectedProductId || !itemQty || !itemCost) return;
@@ -57,7 +60,7 @@ export default function PurchaseNew() {
 
   const handleSave = () => {
     if (!supplierId || items.length === 0) {
-      toast({ title: "Validation Error", description: "Supplier and at least one item are required.", variant: "destructive" });
+      toast({ title: "Validation Error", description: "Select supplier and add at least one item.", variant: "destructive" });
       return;
     }
 
@@ -77,7 +80,7 @@ export default function PurchaseNew() {
       }
     }, {
       onSuccess: () => {
-        toast({ title: "Success", description: "Purchase recorded successfully" });
+        toast({ title: "Purchase recorded!", description: `${items.length} item(s) stocked.` });
         queryClient.invalidateQueries({ queryKey: getListPurchasesQueryKey() });
         setLocation("/purchases");
       },
@@ -86,20 +89,14 @@ export default function PurchaseNew() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50/50 pb-20">
-      <div className="sticky top-14 z-30 bg-primary text-primary-foreground border-b p-4 flex items-center shadow-sm">
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 h-8 w-8 mr-2" onClick={() => setLocation("/purchases")}>
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-        <h1 className="font-bold text-lg">New Purchase</h1>
-      </div>
+    <div className="flex flex-col min-h-full bg-gray-50/60">
+      <PageHeader title="New Purchase Entry" subtitle="Record stock from supplier" backTo="/purchases" />
 
-      <div className="p-4 space-y-4">
-        <div className="space-y-4 bg-card p-4 rounded-xl shadow-sm border">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-muted-foreground">Supplier *</label>
+      <div className="p-4 space-y-4 pb-24">
+        <FormCard title="Supplier">
+          <FormField label="Supplier" required>
             <Select value={supplierId} onValueChange={setSupplierId}>
-              <SelectTrigger className="h-12">
+              <SelectTrigger className="h-12 rounded-xl">
                 <SelectValue placeholder="Select Supplier" />
               </SelectTrigger>
               <SelectContent>
@@ -108,25 +105,25 @@ export default function PurchaseNew() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-muted-foreground">Invoice Ref</label>
-              <Input value={invoiceRef} onChange={e => setInvoiceRef(e.target.value)} className="h-12" placeholder="e.g. INV-123" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-muted-foreground">Paid Amount (₹)</label>
-              <Input type="number" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} className="h-12" placeholder="0" />
-            </div>
-          </div>
-        </div>
+          </FormField>
 
-        <div className="space-y-4 bg-card p-4 rounded-xl shadow-sm border">
-          <h3 className="font-semibold text-gray-900">Add Item</h3>
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Invoice Ref" hint="Optional">
+              <Input value={invoiceRef} onChange={e => setInvoiceRef(e.target.value)} className="h-12 rounded-xl border-muted focus:border-primary" placeholder="e.g. INV-123" />
+            </FormField>
+            <FormField label="Paid Now (₹)">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold">₹</span>
+                <Input type="number" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} className="h-12 pl-7 rounded-xl border-muted focus:border-primary" placeholder="0" />
+              </div>
+            </FormField>
+          </div>
+        </FormCard>
+
+        <FormCard title="Add Item">
+          <FormField label="Product">
             <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-              <SelectTrigger className="h-12">
+              <SelectTrigger className="h-12 rounded-xl">
                 <SelectValue placeholder="Select Product" />
               </SelectTrigger>
               <SelectContent>
@@ -135,62 +132,78 @@ export default function PurchaseNew() {
                 ))}
               </SelectContent>
             </Select>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Qty</label>
-                <Input type="number" value={itemQty} onChange={e => setItemQty(e.target.value)} min="1" className="h-10" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Cost/Unit</label>
-                <Input type="number" value={itemCost} onChange={e => setItemCost(e.target.value)} className="h-10" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Free Qty</label>
-                <Input type="number" value={freeQty} onChange={e => setFreeQty(e.target.value)} min="0" className="h-10" />
-              </div>
+          </FormField>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Qty</label>
+              <Input type="number" value={itemQty} onChange={e => setItemQty(e.target.value)} min="1" className="h-11 rounded-xl border-muted focus:border-primary text-center font-bold" />
             </div>
-            <Button variant="outline" className="w-full" onClick={addItem} disabled={!selectedProductId || !itemQty || !itemCost}>
-              <Plus className="w-4 h-4 mr-2" /> Add to List
-            </Button>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Cost/Unit (₹)</label>
+              <Input type="number" value={itemCost} onChange={e => setItemCost(e.target.value)} className="h-11 rounded-xl border-muted focus:border-primary" placeholder="0" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Free Qty</label>
+              <Input type="number" value={freeQty} onChange={e => setFreeQty(e.target.value)} min="0" className="h-11 rounded-xl border-muted focus:border-primary text-center" />
+            </div>
           </div>
-        </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11 rounded-xl border-primary/40 text-primary font-semibold"
+            onClick={addItem}
+            disabled={!selectedProductId || !itemQty || !itemCost}
+          >
+            <Plus className="w-4 h-4 mr-2" /> Add to List
+          </Button>
+        </FormCard>
 
         {items.length > 0 && (
           <div className="space-y-2">
-            <h3 className="font-semibold text-gray-900 text-sm">Items Added ({items.length})</h3>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 px-1">Items Added ({items.length})</p>
             {items.map((item, idx) => (
-              <Card key={idx}>
-                <CardContent className="p-3 flex justify-between items-center">
-                  <div>
-                    <div className="font-semibold text-sm">{item.product.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.quantity} x {formatCurrency(item.unitCost)} 
-                      {item.freeQuantity > 0 && <span className="text-primary ml-1">(+{item.freeQuantity} free)</span>}
+              <Card key={idx} className="border-muted/60">
+                <CardContent className="p-4 flex justify-between items-center">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm truncate">{item.product.name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {item.quantity} × {formatCurrency(item.unitCost)}
+                      {item.freeQuantity > 0 && <span className="text-primary ml-2 font-medium">+{item.freeQuantity} free</span>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="font-bold">{formatCurrency(item.quantity * item.unitCost)}</div>
-                    <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => removeItem(idx)}>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="font-bold text-sm">{formatCurrency(item.quantity * item.unitCost)}</div>
+                    <Button variant="ghost" size="icon" className="text-destructive/60 hover:text-destructive h-8 w-8" onClick={() => removeItem(idx)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
-            
-            <div className="bg-primary/10 p-4 rounded-xl flex justify-between items-center mt-4">
-              <span className="font-bold text-primary">Total Amount</span>
-              <span className="font-bold text-2xl text-primary">{formatCurrency(totalAmount)}</span>
+
+            <div className="rounded-2xl bg-primary/10 border border-primary/20 p-4 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-primary text-sm">Total Amount</span>
+                <span className="font-bold text-2xl text-primary">{formatCurrency(totalAmount)}</span>
+              </div>
+              {pendingAmount > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-amber-700 font-medium">Pending to Pay</span>
+                  <span className="text-amber-700 font-bold">{formatCurrency(pendingAmount)}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        <Button 
-          className="w-full h-14 text-lg mt-4 active-elevate" 
+        <Button
+          className="w-full h-14 text-base font-bold rounded-2xl shadow-lg shadow-primary/20 active-elevate"
           onClick={handleSave}
           disabled={createPurchase.isPending || items.length === 0}
         >
-          {createPurchase.isPending ? "Saving..." : "Save Purchase"}
+          {createPurchase.isPending ? "Saving..." : items.length > 0 ? `Save Purchase — ${formatCurrency(totalAmount)}` : "Save Purchase"}
         </Button>
       </div>
     </div>

@@ -1,8 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, dailyClosingsTable, billsTable, billItemsTable, expensesTable } from "@workspace/db";
 import { ListDailyClosingsQueryParams, CreateDailyClosingBody } from "@workspace/api-zod";
-import { desc, eq, gte, lte, and } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { desc, eq, gte, lte, and, inArray, sql } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -58,7 +57,7 @@ router.get("/daily-closings/today", async (req, res): Promise<void> => {
     const items = await db
       .select()
       .from(billItemsTable)
-      .where(sql`${billItemsTable.billId} = ANY(${billIds})`);
+      .where(inArray(billItemsTable.billId, billIds));
 
     const productMap = new Map<number, { productId: number; productName: string; quantitySold: number; revenue: number }>();
     for (const item of items) {

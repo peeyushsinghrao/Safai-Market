@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft } from "lucide-react";
 import { useCreateProduct, useListCategories } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { computeMargin, MARGIN_TIER_CONFIG } from "@/lib/profit";
 import { cn } from "@/lib/utils";
+import PageHeader from "@/components/page-header";
+import { FormCard, FormField } from "@/components/form-card";
 
 export default function ProductNew() {
   const [, setLocation] = useLocation();
@@ -55,7 +56,7 @@ export default function ProductNew() {
       }
     }, {
       onSuccess: () => {
-        toast({ title: "Success", description: "Product created successfully" });
+        toast({ title: "Product created!" });
         setLocation("/products");
       },
       onError: (err) => {
@@ -65,123 +66,123 @@ export default function ProductNew() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50/50 pb-20">
-      <div className="sticky top-14 z-30 bg-primary text-primary-foreground border-b p-4 flex items-center shadow-sm">
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 h-8 w-8 mr-2" onClick={() => setLocation("/products")}>
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-        <h1 className="font-bold text-lg">Add New Product</h1>
-      </div>
+    <div className="flex flex-col min-h-full bg-gray-50/60">
+      <PageHeader title="Add Product" subtitle="New product to catalog" backTo="/products" />
 
-      <form onSubmit={handleSubmit} className="p-4 space-y-4">
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-muted-foreground">Product Name *</label>
-          <Input name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Harpic 500ml" required className="h-12" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-muted-foreground">Brand</label>
-            <Input name="brand" value={formData.brand} onChange={handleChange} placeholder="e.g. Reckitt" className="h-12" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-muted-foreground">Category</label>
-            <Select value={formData.categoryId} onValueChange={(val) => setFormData(p => ({ ...p, categoryId: val }))}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Select..." />
-              </SelectTrigger>
-              <SelectContent>
-                {categories?.map(c => (
-                  <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Pricing Section */}
-        <div className="rounded-xl border bg-white p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pricing</h3>
+      <form onSubmit={handleSubmit} className="flex-1 p-4 space-y-4 pb-24">
+        <FormCard title="Product Info">
+          <FormField label="Product Name" required>
+            <Input name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Harpic 500ml" required autoFocus className="h-12 rounded-xl text-base border-muted focus:border-primary" />
+          </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Buy Price / Cost (₹)</label>
-              <Input type="number" name="buyPrice" value={formData.buyPrice} onChange={handleChange} placeholder="0" className="h-12" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Sell Price (₹) *</label>
-              <Input type="number" name="sellPrice" value={formData.sellPrice} onChange={handleChange} required placeholder="0" className="h-12" />
-            </div>
+            <FormField label="Brand">
+              <Input name="brand" value={formData.brand} onChange={handleChange} placeholder="e.g. Reckitt" className="h-12 rounded-xl text-sm border-muted focus:border-primary" />
+            </FormField>
+            <FormField label="Category">
+              <Select value={formData.categoryId} onValueChange={(val) => setFormData(p => ({ ...p, categoryId: val }))}>
+                <SelectTrigger className="h-12 rounded-xl">
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories?.map(c => (
+                    <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
+        </FormCard>
+
+        <FormCard title="Pricing">
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Buy Price / Cost (₹)">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-xs">₹</span>
+                <Input type="number" name="buyPrice" value={formData.buyPrice} onChange={handleChange} placeholder="0" className="h-12 pl-7 rounded-xl border-muted focus:border-primary" />
+              </div>
+            </FormField>
+            <FormField label="Sell Price (₹)" required>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-xs">₹</span>
+                <Input type="number" name="sellPrice" value={formData.sellPrice} onChange={handleChange} required placeholder="0" className="h-12 pl-7 rounded-xl border-muted focus:border-primary" />
+              </div>
+            </FormField>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">MRP (₹)</label>
-              <Input type="number" name="mrp" value={formData.mrp} onChange={handleChange} placeholder="Optional" className="h-12" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Wholesale Price (₹)</label>
-              <Input type="number" name="wholesalePrice" value={formData.wholesalePrice} onChange={handleChange} placeholder="Optional" className="h-12" />
-            </div>
+            <FormField label="MRP (₹)" hint="Optional">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-xs">₹</span>
+                <Input type="number" name="mrp" value={formData.mrp} onChange={handleChange} placeholder="—" className="h-12 pl-7 rounded-xl border-muted focus:border-primary" />
+              </div>
+            </FormField>
+            <FormField label="Wholesale (₹)" hint="Optional">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-xs">₹</span>
+                <Input type="number" name="wholesalePrice" value={formData.wholesalePrice} onChange={handleChange} placeholder="—" className="h-12 pl-7 rounded-xl border-muted focus:border-primary" />
+              </div>
+            </FormField>
           </div>
 
           {/* Live Margin Preview */}
           {marginInfo ? (
             <div className={cn(
-              "rounded-lg border px-3 py-2.5 flex items-center justify-between",
+              "rounded-xl border px-4 py-3 flex items-center justify-between",
               MARGIN_TIER_CONFIG[marginInfo.tier].badgeClass
             )}>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider opacity-70">Estimated Margin</p>
-                <p className="text-sm font-bold">{MARGIN_TIER_CONFIG[marginInfo.tier].label}</p>
+                <p className="text-xs font-bold uppercase tracking-wider opacity-70">Est. Margin</p>
+                <p className="text-sm font-bold mt-0.5">{MARGIN_TIER_CONFIG[marginInfo.tier].label}</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold">{marginInfo.marginPct.toFixed(1)}%</p>
-                <p className="text-xs opacity-80">₹{marginInfo.profitPerUnit.toFixed(0)} / unit</p>
+                <p className="text-2xl font-bold">{marginInfo.marginPct.toFixed(1)}%</p>
+                <p className="text-xs opacity-80">+₹{marginInfo.profitPerUnit.toFixed(0)} / unit</p>
               </div>
             </div>
-          ) : formData.buyPrice && !formData.sellPrice ? (
-            <p className="text-xs text-muted-foreground text-center py-1">Enter sell price to see margin</p>
-          ) : formData.sellPrice && !formData.buyPrice ? (
-            <p className="text-xs text-muted-foreground text-center py-1">Enter buy price to see margin</p>
+          ) : (formData.buyPrice || formData.sellPrice) ? (
+            <p className="text-xs text-muted-foreground text-center py-1">
+              {!formData.buyPrice ? "Add buy price" : "Add sell price"} to see margin
+            </p>
           ) : null}
-        </div>
+        </FormCard>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-muted-foreground">Unit</label>
-            <Select value={formData.unit} onValueChange={(val) => setFormData(p => ({ ...p, unit: val }))}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Select..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="piece">Piece</SelectItem>
-                <SelectItem value="bottle">Bottle</SelectItem>
-                <SelectItem value="packet">Packet</SelectItem>
-                <SelectItem value="kg">Kg</SelectItem>
-                <SelectItem value="litre">Litre</SelectItem>
-                <SelectItem value="pair">Pair</SelectItem>
-                <SelectItem value="pack">Pack</SelectItem>
-              </SelectContent>
-            </Select>
+        <FormCard title="Stock & Unit">
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Unit">
+              <Select value={formData.unit} onValueChange={(val) => setFormData(p => ({ ...p, unit: val }))}>
+                <SelectTrigger className="h-12 rounded-xl">
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="piece">Piece</SelectItem>
+                  <SelectItem value="bottle">Bottle</SelectItem>
+                  <SelectItem value="packet">Packet</SelectItem>
+                  <SelectItem value="kg">Kg</SelectItem>
+                  <SelectItem value="litre">Litre</SelectItem>
+                  <SelectItem value="pair">Pair</SelectItem>
+                  <SelectItem value="pack">Pack</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField label="Initial Stock">
+              <Input type="number" name="initialStock" value={formData.initialStock} onChange={handleChange} className="h-12 rounded-xl border-muted focus:border-primary" />
+            </FormField>
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-muted-foreground">Initial Stock</label>
-            <Input type="number" name="initialStock" value={formData.initialStock} onChange={handleChange} className="h-12" />
-          </div>
-        </div>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-muted-foreground">Low Stock Alert Limit</label>
-          <Input type="number" name="lowStockLimit" value={formData.lowStockLimit} onChange={handleChange} className="h-12" />
-        </div>
+          <FormField label="Low Stock Alert" hint="Alert when below this">
+            <Input type="number" name="lowStockLimit" value={formData.lowStockLimit} onChange={handleChange} className="h-12 rounded-xl border-muted focus:border-primary" />
+          </FormField>
+        </FormCard>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-muted-foreground">Search Aliases (Hinglish)</label>
-          <Input name="hinglishAliases" value={formData.hinglishAliases} onChange={handleChange} placeholder="e.g. toilet cleaner, bathroom saaf" className="h-12" />
-        </div>
+        <FormCard title="Search">
+          <FormField label="Hinglish / Search Aliases" hint="Optional">
+            <Input name="hinglishAliases" value={formData.hinglishAliases} onChange={handleChange} placeholder="e.g. toilet cleaner, bathroom saaf" className="h-12 rounded-xl border-muted focus:border-primary" />
+          </FormField>
+          <p className="text-xs text-muted-foreground">Add alternate names to make searching faster during billing.</p>
+        </FormCard>
 
-        <Button type="submit" className="w-full h-12 text-lg mt-4 active-elevate" disabled={createProduct.isPending}>
+        <Button type="submit" className="w-full h-14 text-base font-bold rounded-2xl shadow-lg shadow-primary/20 active-elevate mt-2" disabled={createProduct.isPending}>
           {createProduct.isPending ? "Saving..." : "Save Product"}
         </Button>
       </form>

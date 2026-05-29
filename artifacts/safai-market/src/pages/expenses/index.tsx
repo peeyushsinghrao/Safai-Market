@@ -61,7 +61,7 @@ export default function ExpensesList() {
 
   return (
     <div className="flex flex-col h-full bg-gray-50/50">
-      <div className="sticky top-14 z-30 bg-background/95 backdrop-blur p-4 space-y-3 border-b">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur p-4 space-y-3 border-b">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input 

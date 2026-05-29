@@ -25,6 +25,7 @@ import LowStock from "./pages/low-stock/index";
 import StockMovements from "./pages/stock-movements/index";
 import MoreMenu from "./pages/more/index";
 import ProfitReports from "./pages/profit/index";
+import BillsHistory from "./pages/bills/index";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ function Router() {
       
       <Route path="/more" component={() => <Layout><MoreMenu /></Layout>} />
       <Route path="/profit" component={() => <Layout><ProfitReports /></Layout>} />
+      <Route path="/bills" component={() => <Layout><BillsHistory /></Layout>} />
       
       <Route component={() => <Layout><NotFound /></Layout>} />
     </Switch>

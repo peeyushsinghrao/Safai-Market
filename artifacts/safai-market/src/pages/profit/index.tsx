@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { useLocation } from "wouter";
-import { ChevronLeft, TrendingUp, TrendingDown, Package, Tag, BarChart2, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Package, Tag, BarChart2, AlertTriangle } from "lucide-react";
+import PageHeader from "@/components/page-header";
 import {
   useGetProfitSummary,
   useGetProfitDaily,
@@ -53,19 +53,11 @@ export default function ProfitReports() {
   const maxProductProfit = useMemo(() => Math.max(...(byProduct?.map(p => Math.abs(p.profit)) ?? [0])), [byProduct]);
 
   return (
-    <div className="flex flex-col h-full bg-gray-50/50 pb-20">
-      <div className="sticky top-14 z-30 bg-primary text-primary-foreground border-b border-primary-foreground/20 p-4 flex items-center gap-3 shadow-sm">
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 h-8 w-8" onClick={() => setLocation("/more")}>
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="font-bold text-lg leading-tight">Profit Report</h1>
-          <p className="text-xs text-primary-foreground/70">Estimated margins</p>
-        </div>
-      </div>
+    <div className="flex flex-col min-h-full bg-gray-50/50 pb-20">
+      <PageHeader title="Profit Report" subtitle="Estimated margins" backTo="/more" />
 
       {/* Period Selector */}
-      <div className="sticky top-[calc(3.5rem+4rem)] z-20 bg-background/95 backdrop-blur border-b px-4 py-2 flex gap-2">
+      <div className="sticky top-14 z-20 bg-background/95 backdrop-blur border-b px-4 py-2 flex gap-2">
         {(["7", "30", "90"] as Period[]).map(p => (
           <Button
             key={p}
