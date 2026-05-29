@@ -36,7 +36,6 @@ function MiniBar({ value, max, positive }: { value: number; max: number; positiv
 }
 
 export default function ProfitReports() {
-  const [, setLocation] = useLocation();
   const [period, setPeriod] = useState<Period>("30");
   const [tab, setTab] = useState<"overview" | "products" | "categories">("overview");
 

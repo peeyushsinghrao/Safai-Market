@@ -12,10 +12,10 @@ version = "1.0.0"
 [[services]]
 name = "web"
 paths = [ "/" ]
-localPort = 22669
+localPort = 5173
 
 [services.development]
-run = "PORT=22669 BASE_PATH=/ pnpm --filter @workspace/safai-market run dev"
+run = "PORT=5173 BASE_PATH=/ pnpm --filter @workspace/safai-market run dev"
 
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/safai-market", "run", "build" ]
@@ -27,5 +27,5 @@ from = "/*"
 to = "/index.html"
 
 [services.env]
-PORT = "22669"
+PORT = "5173"
 BASE_PATH = "/"
