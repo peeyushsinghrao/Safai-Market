@@ -19,7 +19,7 @@ export default function ProductNew() {
   const [formData, setFormData] = useState({
     name: "", brand: "", categoryId: "", unit: "",
     sellPrice: "", buyPrice: "", mrp: "", wholesalePrice: "",
-    lowStockLimit: "5", initialStock: "0", hinglishAliases: ""
+    lowStockLimit: "5", initialStock: "0", hinglishAliases: "", barcode: ""
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,8 +52,9 @@ export default function ProductNew() {
         wholesalePrice: formData.wholesalePrice ? Number(formData.wholesalePrice) : undefined,
         lowStockLimit: Number(formData.lowStockLimit),
         initialStock: Number(formData.initialStock),
-        hinglishAliases: formData.hinglishAliases || undefined
-      }
+        hinglishAliases: formData.hinglishAliases || undefined,
+        barcode: formData.barcode || undefined,
+      } as any
     }, {
       onSuccess: () => {
         toast({ title: "Product created!" });
@@ -175,7 +176,10 @@ export default function ProductNew() {
           </FormField>
         </FormCard>
 
-        <FormCard title="Search">
+        <FormCard title="Search & Barcode">
+          <FormField label="Barcode" hint="Optional — for scanner support">
+            <Input name="barcode" value={formData.barcode} onChange={handleChange} placeholder="Scan or type barcode..." className="h-12 rounded-xl border-muted focus:border-primary font-mono tracking-widest" />
+          </FormField>
           <FormField label="Hinglish / Search Aliases" hint="Optional">
             <Input name="hinglishAliases" value={formData.hinglishAliases} onChange={handleChange} placeholder="e.g. toilet cleaner, bathroom saaf" className="h-12 rounded-xl border-muted focus:border-primary" />
           </FormField>

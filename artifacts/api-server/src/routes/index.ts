@@ -11,6 +11,7 @@ import purchasesRouter from "./purchases";
 import stockMovementsRouter from "./stock_movements";
 import expensesRouter from "./expenses";
 import dailyClosingsRouter from "./daily_closings";
+import bundlesRouter from "./bundles";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(purchasesRouter);
 router.use(stockMovementsRouter);
 router.use(expensesRouter);
 router.use(dailyClosingsRouter);
+router.use(bundlesRouter);
 
 export default router;

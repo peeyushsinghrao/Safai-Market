@@ -21,6 +21,7 @@ export const productsTable = pgTable("products", {
   primarySupplierId: integer("primary_supplier_id"),
   hinglishAliases: text("hinglish_aliases"),
   status: text("status").notNull().default("active"),
+  barcode: text("barcode"),
   isVariantParent: boolean("is_variant_parent").notNull().default(false),
   parentProductId: integer("parent_product_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

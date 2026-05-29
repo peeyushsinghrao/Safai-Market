@@ -179,49 +179,95 @@ export default function Home() {
         </Card>
       </Link>
 
-      {/* Low Stock Preview */}
-      <Card className="shadow-sm">
-        <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-            Finishing Stock
-          </CardTitle>
-          <Link href="/low-stock" className="text-xs text-primary font-semibold p-1">View All</Link>
-        </CardHeader>
-        <CardContent className="p-0">
-          {isLoadingLowStock ? (
-            <div className="p-4 space-y-3">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : lowStock?.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              All stock levels look good.
-            </div>
-          ) : (
-            <div className="divide-y">
-              {lowStock?.slice(0, 3).map((item) => (
-                <div key={item.id} className="p-3 px-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{item.name}</p>
-                    {item.brand && <p className="text-xs text-muted-foreground">{item.brand}</p>}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={item.currentStock === 0 ? "destructive" : "secondary"} className="font-mono">
-                      {item.currentStock} {item.unit}
-                    </Badge>
-                    <Link href={`/products/${item.id}`}>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full">
-                        <PlusCircle className="w-4 h-4" />
-                      </Button>
-                    </Link>
-                  </div>
+      {/* FG7: Stock Alerts Widget */}
+      {isLoadingLowStock ? (
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <Skeleton className="h-16 w-full" />
+          </CardContent>
+        </Card>
+      ) : (() => {
+        const outOfStock = lowStock?.filter(p => p.currentStock === 0) ?? [];
+        const lowStockItems = lowStock?.filter(p => p.currentStock > 0) ?? [];
+        const total = outOfStock.length + lowStockItems.length;
+
+        if (total === 0) {
+          return (
+            <Card className="shadow-sm border-green-200 bg-green-50/50">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                  <Package className="w-5 h-5 text-green-600" />
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div>
+                  <p className="font-semibold text-green-800 text-sm">Stock Health: All Good</p>
+                  <p className="text-xs text-green-600">All products are well stocked</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        }
+
+        const criticalNames = outOfStock.slice(0, 3).map(p => p.name);
+        const extraCount = outOfStock.length - criticalNames.length;
+
+        return (
+          <Card className={cn("shadow-sm", outOfStock.length > 0 ? "border-red-200" : "border-amber-200")}>
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
+              <CardTitle className={cn(
+                "text-sm font-bold flex items-center gap-2",
+                outOfStock.length > 0 ? "text-red-700" : "text-amber-700"
+              )}>
+                <AlertTriangle className={cn("w-4 h-4", outOfStock.length > 0 ? "text-red-500" : "text-amber-500")} />
+                Stock Alerts
+              </CardTitle>
+              <Link href="/low-stock" className="text-xs text-primary font-semibold p-1">See All →</Link>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 space-y-2">
+              {/* Stats row */}
+              <div className="grid grid-cols-2 gap-2">
+                {outOfStock.length > 0 && (
+                  <Link href="/low-stock">
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 cursor-pointer active:scale-[0.97] transition-transform">
+                      <p className="text-2xl font-bold text-red-700">{outOfStock.length}</p>
+                      <p className="text-xs font-semibold text-red-600">OUT OF STOCK</p>
+                      <p className="text-[10px] text-red-400 mt-0.5">Order immediately</p>
+                    </div>
+                  </Link>
+                )}
+                {lowStockItems.length > 0 && (
+                  <Link href="/low-stock">
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 cursor-pointer active:scale-[0.97] transition-transform">
+                      <p className="text-2xl font-bold text-amber-700">{lowStockItems.length}</p>
+                      <p className="text-xs font-semibold text-amber-600">LOW STOCK</p>
+                      <p className="text-[10px] text-amber-400 mt-0.5">Order soon</p>
+                    </div>
+                  </Link>
+                )}
+              </div>
+              {/* Critical product names */}
+              {outOfStock.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-red-600">Critical: </span>
+                  {criticalNames.join(", ")}
+                  {extraCount > 0 && ` and ${extraCount} more`}
+                </p>
+              )}
+              <Link href="/low-stock">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "w-full h-9 text-xs font-semibold mt-1",
+                    outOfStock.length > 0 ? "border-red-200 text-red-700 hover:bg-red-50" : "border-amber-200 text-amber-700 hover:bg-amber-50"
+                  )}
+                >
+                  {outOfStock.length > 0 ? "📦 Order Now" : "View Low Stock"}
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Recent Activity */}
       <Card className="shadow-sm mb-4">

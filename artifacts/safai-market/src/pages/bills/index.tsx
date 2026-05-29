@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useListBills } from "@workspace/api-client-react";
-import { Receipt, Search, Printer, ChevronRight, Calendar } from "lucide-react";
+import { Receipt, Search, Printer, ChevronRight, Calendar, Share2, X, MessageCircle, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +11,114 @@ import { cn } from "@/lib/utils";
 import { printReceipt } from "@/lib/receipt";
 import PageHeader from "@/components/page-header";
 
+function generateShareText(bill: any): string {
+  const items = (bill.items || [])
+    .map((i: any) => `${i.productName} × ${i.quantity} — ${formatCurrency(i.quantity * Number(i.unitPrice))}`)
+    .join("\n");
+  const lines = [
+    `*Bill from Anupurna Traders*`,
+    `Bill No: #${bill.billNumber}`,
+    `Date: ${new Date(bill.createdAt).toLocaleDateString("en-IN")}`,
+    bill.customerName ? `Customer: ${bill.customerName}` : "",
+    ``,
+    items,
+    ``,
+    `*Total: ${formatCurrency(Number(bill.totalAmount) - (Number(bill.discountAmount) || 0))}*`,
+    Number(bill.cashAmount) > 0 ? `Cash: ${formatCurrency(Number(bill.cashAmount))}` : "",
+    Number(bill.upiAmount) > 0 ? `UPI: ${formatCurrency(Number(bill.upiAmount))}` : "",
+    Number(bill.udhaarAmount) > 0 ? `Udhaar: ${formatCurrency(Number(bill.udhaarAmount))}` : "",
+    ``,
+    `Thank you for shopping!`,
+  ].filter(Boolean).join("\n");
+  return lines;
+}
+
+function ShareSheet({ bill, onClose }: { bill: any; onClose: () => void }) {
+  const text = generateShareText(bill);
+  const encoded = encodeURIComponent(text);
+  const phone = bill.customerPhone?.replace(/\D/g, "");
+
+  const shareViaWhatsApp = () => {
+    const url = phone
+      ? `whatsapp://send?phone=91${phone}&text=${encoded}`
+      : `whatsapp://send?text=${encoded}`;
+    window.open(url, "_blank");
+  };
+
+  const shareViaTelegram = () => {
+    window.open(`https://t.me/share/url?url=&text=${encoded}`, "_blank");
+  };
+
+  const shareViaEmail = () => {
+    const subject = encodeURIComponent(`Bill from Anupurna Traders — #${bill.billNumber}`);
+    const to = bill.customerEmail ? encodeURIComponent(bill.customerEmail) : "";
+    window.open(`mailto:${to}?subject=${subject}&body=${encoded}`, "_blank");
+  };
+
+  const shareViaSystem = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Bill #${bill.billNumber}`, text });
+      } catch {}
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl">
+        <div className="flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 bg-muted-foreground/20 rounded-full" />
+        </div>
+        <div className="flex items-center justify-between px-4 pb-3 border-b">
+          <h2 className="font-bold text-base">Share Bill #{bill.billNumber}</h2>
+          <button onClick={onClose} className="p-1">
+            <X className="w-5 h-5 text-muted-foreground" />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-muted-foreground">Share as text message</p>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={shareViaWhatsApp}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl border bg-green-50 border-green-200 active:scale-95 transition-transform"
+            >
+              <MessageCircle className="w-6 h-6 text-green-600" />
+              <span className="text-xs font-semibold text-green-700">WhatsApp</span>
+            </button>
+            <button
+              onClick={shareViaTelegram}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl border bg-blue-50 border-blue-200 active:scale-95 transition-transform"
+            >
+              <MessageCircle className="w-6 h-6 text-blue-500" />
+              <span className="text-xs font-semibold text-blue-600">Telegram</span>
+            </button>
+            <button
+              onClick={shareViaEmail}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl border bg-gray-50 border-gray-200 active:scale-95 transition-transform"
+            >
+              <Mail className="w-6 h-6 text-gray-600" />
+              <span className="text-xs font-semibold text-gray-700">Email</span>
+            </button>
+          </div>
+          {navigator.share && (
+            <Button variant="outline" className="w-full h-11 gap-2" onClick={shareViaSystem}>
+              <Share2 className="w-4 h-4" />
+              More options...
+            </Button>
+          )}
+          <Button variant="ghost" className="w-full h-10 text-muted-foreground" onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function BillsHistory() {
   const [search, setSearch] = useState("");
+  const [shareTarget, setShareTarget] = useState<any>(null);
   const { data: bills, isLoading } = useListBills();
 
   const filtered = bills?.filter(b => {
@@ -41,9 +147,9 @@ export default function BillsHistory() {
       cashAmount: Number(bill.cashAmount) || 0,
       upiAmount: Number(bill.upiAmount) || 0,
       udhaarAmount: Number(bill.udhaarAmount) || 0,
-      customerName: bill.customerName,
-      notes: bill.notes,
-      estimatedProfit: bill.estimatedProfit != null ? Number(bill.estimatedProfit) : null,
+      customerName: (bill as any).customerName,
+      notes: (bill as any).notes,
+      estimatedProfit: (bill as any).estimatedProfit != null ? Number((bill as any).estimatedProfit) : null,
     });
   };
 
@@ -89,7 +195,6 @@ export default function BillsHistory() {
             const discount = Number(b.discountAmount) || 0;
             const finalAmt = totalAmt - discount;
             const profit = b.estimatedProfit != null ? Number(b.estimatedProfit) : null;
-            const date = new Date(b.createdAt);
 
             return (
               <Card key={b.id} className="shadow-sm border-muted/60 overflow-hidden">
@@ -149,7 +254,17 @@ export default function BillsHistory() {
                       onClick={() => handleReprint(b)}
                     >
                       <Printer className="w-3.5 h-3.5" />
-                      Reprint
+                      Print
+                    </Button>
+                    <div className="w-px bg-muted/50" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1 h-9 rounded-none text-xs text-muted-foreground gap-1.5 hover:bg-muted/50"
+                      onClick={() => setShareTarget(b)}
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      Share
                     </Button>
                     <div className="w-px bg-muted/50" />
                     <Button
@@ -157,7 +272,7 @@ export default function BillsHistory() {
                       size="sm"
                       className="flex-1 h-9 rounded-none text-xs text-muted-foreground gap-1.5 hover:bg-muted/50"
                     >
-                      View Details
+                      View
                       <ChevronRight className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -167,6 +282,10 @@ export default function BillsHistory() {
           })
         )}
       </div>
+
+      {shareTarget && (
+        <ShareSheet bill={shareTarget} onClose={() => setShareTarget(null)} />
+      )}
     </div>
   );
 }

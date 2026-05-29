@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "wouter";
 import { 
   Truck, ShoppingCart, Receipt, BookOpen, Package, TrendingDown,
-  BarChart2, FileText
+  BarChart2, FileText, Layers
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -15,6 +15,12 @@ const menuSections = [
       { href: "/daily-closing", label: "Daily Closing", sub: "End-of-day summary", icon: BookOpen, color: "bg-blue-100 text-blue-700" },
       { href: "/stock-movements", label: "Stock Movements", sub: "In / out history", icon: TrendingDown, color: "bg-purple-100 text-purple-700" },
       { href: "/low-stock", label: "Finishing Stock", sub: "Items running low", icon: Package, color: "bg-amber-100 text-amber-700" },
+    ]
+  },
+  {
+    title: "Products",
+    items: [
+      { href: "/bundles", label: "Product Bundles", sub: "Combo packs & kits", icon: Layers, color: "bg-violet-100 text-violet-700" },
     ]
   },
   {

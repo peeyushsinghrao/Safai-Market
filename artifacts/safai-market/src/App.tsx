@@ -26,6 +26,9 @@ import StockMovements from "./pages/stock-movements/index";
 import MoreMenu from "./pages/more/index";
 import ProfitReports from "./pages/profit/index";
 import BillsHistory from "./pages/bills/index";
+import BundlesList from "./pages/bundles/index";
+import BundleNew from "./pages/bundles/new";
+import BundleDetail from "./pages/bundles/detail";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +53,9 @@ const StockMovementsPage = () => <Layout><StockMovements /></Layout>;
 const MoreMenuPage = () => <Layout><MoreMenu /></Layout>;
 const ProfitReportsPage = () => <Layout><ProfitReports /></Layout>;
 const BillsHistoryPage = () => <Layout><BillsHistory /></Layout>;
+const BundlesListPage = () => <Layout><BundlesList /></Layout>;
+const BundleNewPage = () => <Layout><BundleNew /></Layout>;
+const BundleDetailPage = () => <Layout><BundleDetail /></Layout>;
 const NotFoundPage = () => <Layout><NotFound /></Layout>;
 
 function Router() {
@@ -84,6 +90,9 @@ function Router() {
       <Route path="/more" component={MoreMenuPage} />
       <Route path="/profit" component={ProfitReportsPage} />
       <Route path="/bills" component={BillsHistoryPage} />
+      <Route path="/bundles" component={BundlesListPage} />
+      <Route path="/bundles/new" component={BundleNewPage} />
+      <Route path="/bundles/:id" component={BundleDetailPage} />
 
       <Route component={NotFoundPage} />
     </Switch>

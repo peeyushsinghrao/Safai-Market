@@ -8,3 +8,4 @@ export * from "./stock_movements";
 export * from "./expenses";
 export * from "./daily_closings";
 export * from "./activity_log";
+export * from "./bundles";
