@@ -1,0 +1,259 @@
+# Replit Prompt — Generate Production Deployment Package for Netlify
+
+IMPORTANT:
+
+The project implementation is complete (or nearly complete).
+
+I now want to deploy this project to Netlify.
+
+Before deployment, perform a complete production readiness audit.
+
+---
+
+# STEP 1 — FULL DEPLOYMENT AUDIT
+
+Audit:
+
+- Frontend
+- Backend
+- Supabase Integration
+- Authentication
+- RLS Policies
+- Database Queries
+- Barcode System
+- Billing System
+- Customer System
+- Product System
+- Device Center
+- Reports
+- Offline Support
+- PWA
+- Mobile Responsiveness
+- Desktop Responsiveness
+
+Find:
+
+- Bugs
+- Broken Features
+- Missing Environment Variables
+- Deployment Risks
+- Security Risks
+- Performance Issues
+
+Generate:
+
+## Deployment Audit Report
+
+---
+
+# STEP 2 — VERIFY PRODUCTION READINESS
+
+Check:
+
+### Authentication
+
+Verify:
+
+- Login works
+- Register works
+- Password reset works
+- Session persistence works
+- Logout works
+
+---
+
+### Multi-Shop
+
+Verify:
+
+- shop_id isolation
+- no data leakage
+- RLS policies active
+
+---
+
+### Billing
+
+Verify:
+
+- Create bill
+- Multi-product cart
+- Discounts
+- PDF generation
+- Bill history
+- Cart reset
+
+---
+
+### Barcode
+
+Verify:
+
+- Camera scanner
+- Manual barcode
+- Unknown barcode workflow
+
+---
+
+### Offline
+
+Verify:
+
+- IndexedDB
+- Local cache
+- Sync queue
+
+---
+
+# STEP 3 — NETLIFY DEPLOYMENT PACKAGE
+
+Generate:
+
+## netlify.toml
+
+Production-ready configuration.
+
+---
+
+Generate:
+
+## Environment Variables List
+
+Example:
+
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
+
+Include ALL required variables.
+
+---
+
+Generate:
+
+## Build Settings
+
+Include:
+
+```text
+Build Command
+Publish Directory
+Node Version
+```
+
+---
+
+Generate:
+
+## PWA Deployment Checklist
+
+Verify:
+
+- manifest.json
+- service worker
+- icons
+- install prompt
+- offline support
+
+---
+
+# STEP 4 — CREATE DEPLOYMENT DOCUMENTATION
+
+Generate:
+
+## DEPLOYMENT.md
+
+Include:
+
+### Netlify Deployment Steps
+
+Step-by-step.
+
+### Environment Variables Setup
+
+Step-by-step.
+
+### Domain Setup
+
+Step-by-step.
+
+### SSL Setup
+
+Step-by-step.
+
+### Troubleshooting
+
+Common deployment issues.
+
+---
+
+# STEP 5 — GENERATE GIST FILES
+
+Create the following downloadable markdown files:
+
+## 1.
+
+DEPLOYMENT_GUIDE.md
+
+Contains:
+
+- deployment instructions
+- environment variables
+- build settings
+- domain setup
+
+---
+
+## 2.
+
+PRODUCTION_CHECKLIST.md
+
+Contains:
+
+- production readiness checklist
+- testing checklist
+- security checklist
+
+---
+
+## 3.
+
+PROJECT_HANDOVER.md
+
+Contains:
+
+- architecture summary
+- folder structure
+- database tables
+- storage buckets
+- future maintenance notes
+
+---
+
+## 4.
+
+NETLIFY_SETUP.md
+
+Contains:
+
+- exact Netlify configuration
+- redirects
+- SPA routing setup
+- build settings
+
+---
+
+# IMPORTANT OUTPUT RULE
+
+Do NOT simply explain.
+
+Actually create the markdown files.
+
+Provide the full content for each file.
+
+Do not wait for another message.
+
+Immediately generate all markdown files in the response.
+
+If any deployment issues are found, fix them before generating the files.

@@ -1,0 +1,754 @@
+# SAFAI MARKET — PHASE F ADDENDUM
+# Missing Requirements & Future-Ready Architecture
+
+---
+
+# PURPOSE
+
+This document contains all important requirements that are currently missing or only partially defined in the existing PRD, Audit Report, and Implementation Plan.
+
+These requirements must be incorporated into the final architecture before production deployment.
+
+---
+
+# F1 — MULTI-BRANCH ARCHITECTURE
+
+Current architecture supports:
+
+- Multi Shop
+
+Missing:
+
+- Multi Branch
+
+Example:
+
+Shop:
+Anupurna Traders
+
+Branches:
+
+- Main Market Branch
+- Railway Road Branch
+- Bus Stand Branch
+
+---
+
+## Database
+
+Create:
+
+```text
+branches
+```
+
+Fields:
+
+```text
+id
+shop_id
+name
+address
+phone
+manager_name
+status
+created_at
+updated_at
+```
+
+---
+
+## Product Support
+
+Products may be:
+
+- Shared across branches
+OR
+- Managed separately per branch
+
+Future-ready architecture required.
+
+---
+
+## Stock Management
+
+Stock must be tracked per branch.
+
+Example:
+
+Product A
+
+Main Branch:
+50 pcs
+
+Railway Branch:
+20 pcs
+
+Bus Stand:
+5 pcs
+
+---
+
+## Billing
+
+Every bill must contain:
+
+```text
+shop_id
+branch_id
+```
+
+---
+
+## Reports
+
+Reports must support:
+
+- Shop Level
+- Branch Level
+
+---
+
+# F2 — SYNC CENTER
+
+Create:
+
+```text
+More
+→ Sync Center
+```
+
+---
+
+## Features
+
+Display:
+
+```text
+Last Sync Time
+Pending Operations
+Failed Operations
+Total Synced Records
+Device Status
+```
+
+---
+
+## Actions
+
+Support:
+
+```text
+Manual Sync
+Retry Failed Sync
+Clear Queue
+View Sync Logs
+```
+
+---
+
+## Database
+
+Create:
+
+```text
+sync_logs
+```
+
+Track:
+
+```text
+operation
+entity
+status
+device
+timestamp
+error
+```
+
+---
+
+# F3 — BACKUP & RESTORE
+
+Create:
+
+```text
+More
+→ Backup & Restore
+```
+
+---
+
+## Backup Options
+
+Support:
+
+```text
+Cloud Backup
+Local Backup
+CSV Export
+JSON Export
+```
+
+---
+
+## Restore Options
+
+Support:
+
+```text
+Restore Latest Backup
+Restore Specific Backup
+Restore Products Only
+Restore Customers Only
+Restore Bills Only
+```
+
+---
+
+## Safety
+
+Before restore:
+
+```text
+Create Automatic Snapshot
+```
+
+---
+
+# F4 — DEVICE CENTER ENHANCEMENT
+
+Current:
+
+```text
+Printers
+Barcode Scanners
+```
+
+Add:
+
+```text
+Device Diagnostics
+Device Status
+Test Device
+Default Device
+```
+
+---
+
+## Printer Diagnostics
+
+Support:
+
+```text
+Test Print
+Print Preview
+Paper Width Detection
+```
+
+---
+
+## Barcode Scanner Diagnostics
+
+Support:
+
+```text
+Test Scan
+Scanner Response Time
+Scanner Type
+```
+
+---
+
+# F5 — BLUETOOTH & WIFI PRINTER ROADMAP
+
+Support Future:
+
+```text
+Bluetooth Printers
+WiFi Printers
+USB Printers
+Thermal Printers
+```
+
+---
+
+## Printer Types
+
+```text
+58mm
+80mm
+A4
+```
+
+---
+
+## Device Center
+
+Allow:
+
+```text
+Add Printer
+Remove Printer
+Set Default Printer
+Rename Printer
+```
+
+---
+
+## Bill Actions
+
+After bill creation:
+
+```text
+Print
+Download PDF
+Share
+Reprint
+```
+
+---
+
+# F6 — BARCODE MACHINE PAIRING
+
+Create:
+
+```text
+More
+→ Devices
+→ Barcode Scanners
+```
+
+---
+
+## Features
+
+Support:
+
+```text
+USB Scanner
+Bluetooth Scanner
+Camera Scanner
+```
+
+---
+
+## Scanner Settings
+
+Support:
+
+```text
+Default Scanner
+Auto Add To Cart
+Scan Sound
+Bulk Scan Mode
+```
+
+---
+
+## Diagnostics
+
+Support:
+
+```text
+Last Scan
+Device Name
+Scanner Status
+```
+
+---
+
+# F7 — ADVANCED BARCODE WORKFLOWS
+
+---
+
+## Unknown Barcode
+
+Workflow:
+
+```text
+Barcode Not Found
+↓
+Create Product
+Assign Existing Product
+Cancel
+```
+
+---
+
+## Bulk Scan Mode
+
+Workflow:
+
+```text
+Scan
+↓
+Auto Add
+↓
+Ready For Next Scan
+```
+
+---
+
+## Barcode Label Printing
+
+Future Architecture:
+
+```text
+Generate Barcode
+Print Barcode Label
+```
+
+---
+
+## Internal Barcode Generator
+
+Format:
+
+```text
+SMAT-000001
+SMAT-000002
+SMAT-000003
+```
+
+---
+
+# F8 — GST ARCHITECTURE
+
+Support:
+
+```text
+GST Shops
+Non GST Shops
+```
+
+---
+
+## Store Settings
+
+Fields:
+
+```text
+GST Number
+GST Type
+GST Enabled
+```
+
+---
+
+## Billing
+
+If GST Enabled:
+
+Show:
+
+```text
+CGST
+SGST
+IGST
+```
+
+---
+
+If GST Disabled:
+
+Simple Retail Bill.
+
+---
+
+## Future
+
+Support:
+
+```text
+GST Reports
+GST Export
+```
+
+---
+
+# F9 — SALES RETURN SYSTEM
+
+Create:
+
+```text
+Sales Return
+```
+
+---
+
+## Workflow
+
+```text
+Find Bill
+↓
+Select Items
+↓
+Return Qty
+↓
+Reason
+↓
+Process Return
+```
+
+---
+
+## Effects
+
+Automatically:
+
+```text
+Increase Stock
+Adjust Revenue
+Create Return Entry
+```
+
+---
+
+# F10 — PURCHASE RETURN SYSTEM
+
+Create:
+
+```text
+Purchase Return
+```
+
+---
+
+## Workflow
+
+```text
+Find Purchase
+↓
+Select Product
+↓
+Return Qty
+↓
+Supplier Return
+```
+
+---
+
+## Effects
+
+Automatically:
+
+```text
+Decrease Stock
+Adjust Supplier Balance
+Create Audit Entry
+```
+
+---
+
+# F11 — CUSTOMER CREDIT CONTROL
+
+Add:
+
+```text
+Credit Limit
+Credit Status
+```
+
+---
+
+## Rules
+
+When credit exceeds limit:
+
+Show:
+
+```text
+Credit Limit Exceeded
+```
+
+---
+
+## Customer Profile
+
+Display:
+
+```text
+Total Credit
+Total Paid
+Pending Amount
+Last Payment
+```
+
+---
+
+# F12 — DISCOUNT TRACKING SYSTEM
+
+Current:
+
+Discount applied.
+
+Missing:
+
+Tracking.
+
+---
+
+## Track
+
+Store:
+
+```text
+Discount Amount
+Discount Percentage
+Discount Reason
+Staff Name
+Timestamp
+```
+
+---
+
+## Reports
+
+Support:
+
+```text
+Total Discounts
+Discount By Staff
+Discount By Product
+Discount By Customer
+```
+
+---
+
+# F13 — ADVANCED PROFIT DASHBOARD
+
+Create:
+
+```text
+Profit Dashboard
+```
+
+---
+
+## Metrics
+
+Show:
+
+```text
+Today's Profit
+Weekly Profit
+Monthly Profit
+```
+
+---
+
+## Reports
+
+Show:
+
+```text
+Top Profit Products
+Low Profit Products
+Top Categories
+Low Margin Categories
+```
+
+---
+
+# F14 — BILLING SCREEN UX IMPROVEMENTS
+
+Current:
+
+Search only.
+
+Requirement:
+
+Visual Product Selection.
+
+---
+
+## Billing Screen Layout
+
+Show:
+
+```text
+Search
+Categories
+Products Grid
+Frequently Sold Together
+Bundles
+Cart
+```
+
+---
+
+## Quick Add
+
+Single Tap:
+
+```text
+Product
+↓
+Add To Cart
+```
+
+---
+
+## Frequently Sold Together
+
+Use:
+
+```text
+Real Purchase History
+```
+
+Not category guessing.
+
+---
+
+# F15 — OWNER FRIENDLY DESIGN RULE
+
+Most Important Rule:
+
+The application must remain simple.
+
+---
+
+The owner should be able to:
+
+```text
+Create Bill
+Add Product
+View Stock
+Check Profit
+```
+
+within seconds.
+
+---
+
+Never turn the application into:
+
+```text
+ERP
+Accounting Software
+Complex Business Suite
+```
+
+---
+
+Target Feel:
+
+- WhatsApp
+- PhonePe
+- Blinkit
+
+Simple UI
+
+Powerful Backend
+
+Fast Workflow
+
+Minimum Clicks
+
+Maximum Productivity
+
+---
+
+# END OF PHASE F ADDENDUM

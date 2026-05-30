@@ -506,6 +506,8 @@ function CheckoutSheet({
           onSuccess({
             billNumber: b.billNumber,
             profit: b.estimatedProfit != null ? Number(b.estimatedProfit) : null,
+            subtotal: getSubtotal(),
+            discountAmount: discountAmt,
             totalAmount: total,
             cashAmount: cashNum,
             upiAmount: upiNum,
@@ -660,6 +662,8 @@ function CheckoutSheet({
 type BillSuccessData = {
   billNumber: string;
   profit: number | null;
+  subtotal: number;
+  discountAmount: number;
   totalAmount: number;
   cashAmount: number;
   upiAmount: number;
@@ -697,7 +701,8 @@ function BillSuccessScreen({
         minute: "2-digit",
       }),
       items: bill.items,
-      subtotal: bill.totalAmount,
+      subtotal: bill.subtotal,
+      discountAmount: bill.discountAmount > 0 ? bill.discountAmount : undefined,
       totalAmount: bill.totalAmount,
       cashAmount: bill.cashAmount,
       upiAmount: bill.upiAmount,
@@ -729,7 +734,7 @@ function BillSuccessScreen({
       .join("\n");
 
     const encoded = encodeURIComponent(lines);
-    window.open(`whatsapp://send?text=${encoded}`, "_blank");
+    window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
 
   return (
@@ -837,7 +842,7 @@ export default function Billing() {
   const { data: allProducts, isLoading: loadingProducts } = useListProducts(
     debouncedSearch.length >= 2
       ? { search: debouncedSearch }
-      : { limit: 200 }
+      : { limit: 500 }
   );
 
   const { data: categories } = useListCategories();
@@ -908,14 +913,31 @@ export default function Billing() {
   };
 
   const handleAddBundle = (bundle: any) => {
+    // Check real stock for each item before adding (B3 fix — no more hardcoded 999)
+    const outOfStockItems: string[] = [];
     for (const item of bundle.items) {
+      const realProduct = allProducts?.find((p) => p.id === item.productId);
+      if (realProduct && Number(realProduct.currentStock) <= 0) {
+        outOfStockItems.push(item.productNameSnapshot);
+      }
+    }
+    if (outOfStockItems.length > 0) {
+      toast({
+        title: "Stock unavailable",
+        description: `Out of stock: ${outOfStockItems.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    for (const item of bundle.items) {
+      const realProduct = allProducts?.find((p) => p.id === item.productId);
       cartStore.addItem({
         id: item.productId,
         name: `${item.productNameSnapshot} (${bundle.name})`,
         sellPrice: Number(bundle.sellPrice) / bundle.items.length,
         buyPrice: Number(item.buyPriceSnapshot),
-        currentStock: 999,
-        unit: "piece",
+        currentStock: realProduct ? Number(realProduct.currentStock) : 0,
+        unit: realProduct?.unit ?? "piece",
       });
     }
     toast({ title: `Bundle added: ${bundle.name}`, description: formatCurrency(Number(bundle.sellPrice)) });
@@ -1301,8 +1323,20 @@ export default function Billing() {
           open={scannerOpen}
           onClose={() => setScannerOpen(false)}
           onDetected={(barcode) => {
-            setSearch(barcode);
-            setTimeout(() => searchInputRef.current?.focus(), 100);
+            setScannerOpen(false);
+            const exactMatch = allProducts?.find(
+              (p: any) => p.barcode === barcode && p.status === "active"
+            );
+            if (exactMatch) {
+              cartStore.addItem(exactMatch as any);
+              toast({
+                title: `Added: ${exactMatch.name}`,
+                description: formatCurrency(Number(exactMatch.sellPrice)),
+              });
+            } else {
+              setSearch(barcode);
+              setTimeout(() => searchInputRef.current?.focus(), 100);
+            }
           }}
         />
       </Suspense>

@@ -6,9 +6,12 @@ import { sql } from "drizzle-orm";
 const router: IRouter = Router();
 
 router.get("/dashboard/summary", async (req, res): Promise<void> => {
-  const today = new Date().toISOString().slice(0, 10);
-  const todayStart = new Date(today + "T00:00:00.000Z");
-  const todayEnd = new Date(today + "T23:59:59.999Z");
+  // Use IST (UTC+5:30) for "today" — bills made before 5:30 AM UTC should still count as today
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const nowIST = new Date(Date.now() + IST_OFFSET_MS);
+  const today = nowIST.toISOString().slice(0, 10);
+  const todayStart = new Date(`${today}T00:00:00+05:30`);
+  const todayEnd = new Date(`${today}T23:59:59.999+05:30`);
 
   const [todayBills, totalUdhaar, totalSupplierPending, totalExpenses, lastClosing] = await Promise.all([
     db.select().from(billsTable).where(and(
