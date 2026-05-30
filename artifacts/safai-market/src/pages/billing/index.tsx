@@ -428,6 +428,7 @@ function CheckoutSheet({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createBill = useCreateBill();
+  const cartStore = useCartStore();
   const {
     items,
     customerId,
@@ -438,10 +439,13 @@ function CheckoutSheet({
     getDiscountAmount,
     getSubtotal,
     clearCart,
-  } = useCartStore();
+  } = cartStore;
 
   const [cashAmount, setCashAmount] = useState("");
   const [upiAmount, setUpiAmount] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const { settings } = useSettingsStore();
+  const gstBreakdown = cartStore.getGstBreakdown();
 
   const total = getTotal();
   const discountAmt = getDiscountAmount();
@@ -451,16 +455,28 @@ function CheckoutSheet({
 
   const { data: customers } = useListCustomers();
 
+  useEffect(() => {
+    if (open) setSubmitted(false);
+  }, [open]);
+
   const handleConfirm = () => {
+    // FIX H2: Prevent double-submit
+    if (submitted || createBill.isPending) return;
+
     if (items.length === 0) return;
-    if (udhaarAmount > 0 && !customerId) {
+
+    // FIX BUG-003: Only validate udhaar against real customer (not Walk-in empty string)
+    const hasRealCustomer = Boolean(customerId && customerId !== "");
+    if (udhaarAmount > 0 && !hasRealCustomer) {
       toast({
         title: "Customer required",
-        description: "Select a customer for udhaar.",
+        description: "Select a customer to record udhaar.",
         variant: "destructive",
       });
       return;
     }
+
+    setSubmitted(true);
 
     createBill.mutate(
       {
@@ -471,7 +487,7 @@ function CheckoutSheet({
             unitPrice: i.unitPrice,
             discountAmount: i.itemDiscount * i.quantity,
           })),
-          customerId: customerId ? Number(customerId) : undefined,
+          customerId: hasRealCustomer ? Number(customerId) : undefined,
           totalAmount: total,
           cashAmount: cashNum,
           upiAmount: upiNum,
@@ -482,6 +498,7 @@ function CheckoutSheet({
       },
       {
         onSuccess: (bill) => {
+          setSubmitted(false);
           const b = bill as any;
           const selectedCustomer = customers?.find(
             (c) => String(c.id) === customerId
@@ -515,12 +532,16 @@ function CheckoutSheet({
             customerName: selectedCustomer?.name,
             notes: notes || undefined,
             items: billItems,
+            gstBreakdown: gstBreakdown.totalGst > 0 ? gstBreakdown : undefined,
+            storeGstNumber: settings.gstNumber,
+            showGst: settings.showGst,
           });
           clearCart();
           setCashAmount("");
           setUpiAmount("");
         },
         onError: (err) => {
+          setSubmitted(false);
           toast({
             title: "Error creating bill",
             description: err.message,
@@ -613,7 +634,7 @@ function CheckoutSheet({
                   <SelectValue placeholder="Walk-in customer" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">Walk-in</SelectItem>
+                  <SelectItem value="">Walk-in</SelectItem>
                   {customers?.map((c) => (
                     <SelectItem key={c.id} value={String(c.id)}>
                       {c.name}
@@ -642,11 +663,33 @@ function CheckoutSheet({
           </div>
         </div>
 
-        <div className="p-4 border-t shrink-0">
+        <div className="p-4 border-t shrink-0 space-y-2">
+          {gstBreakdown.totalGst > 0 && (
+            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 text-sm mb-2">
+              <div className="flex justify-between text-blue-700 font-medium mb-1">
+                <span>Taxable Amount</span>
+                <span>{formatCurrency(total - gstBreakdown.totalGst)}</span>
+              </div>
+              {gstBreakdown.isInterState ? (
+                <div className="flex justify-between text-blue-600 text-xs">
+                  <span>IGST</span><span>{formatCurrency(gstBreakdown.igst)}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between text-blue-600 text-xs">
+                    <span>CGST</span><span>{formatCurrency(gstBreakdown.cgst)}</span>
+                  </div>
+                  <div className="flex justify-between text-blue-600 text-xs">
+                    <span>SGST</span><span>{formatCurrency(gstBreakdown.sgst)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <Button
             className="w-full h-14 text-lg font-bold shadow-md shadow-primary/30"
             onClick={handleConfirm}
-            disabled={createBill.isPending || items.length === 0}
+            disabled={createBill.isPending || submitted || items.length === 0}
             data-testid="button-confirm-bill"
           >
             {createBill.isPending
@@ -676,6 +719,9 @@ type BillSuccessData = {
     unitPrice: number;
     totalPrice: number;
   }[];
+  gstBreakdown?: { cgst: number; sgst: number; igst: number; totalGst: number; isInterState: boolean };
+  storeGstNumber?: string;
+  showGst?: boolean;
 };
 
 function BillSuccessScreen({
@@ -710,6 +756,12 @@ function BillSuccessScreen({
       customerName: bill.customerName,
       notes: bill.notes,
       estimatedProfit: bill.profit,
+      storeGstNumber: bill.storeGstNumber,
+      gstBreakdown: bill.gstBreakdown,
+      showGst: bill.showGst,
+      storeAddress: settings.address,
+      storePhone: settings.phone,
+      paperSize: settings.paperSize,
     });
   };
 
@@ -1262,7 +1314,7 @@ export default function Billing() {
 
       {/* Sticky Cart Footer — split: left opens cart drawer, right goes direct to checkout */}
       {itemCount > 0 && (
-        <div className="fixed bottom-[60px] left-0 right-0 z-30 px-3 pb-2">
+        <div className="fixed left-0 right-0 z-30 px-3" style={{ bottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}>
           <div className="flex gap-2">
             {/* Left: view / edit cart */}
             <button

@@ -3,7 +3,8 @@ import { useAuthStore } from "@/stores/auth";
 import { useEffect } from "react";
 import { Store } from "lucide-react";
 
-const PUBLIC_PATHS = ["/auth/login", "/auth/register"];
+// FIX BUG-012: /auth/onboarding must be public or guard redirects to itself infinitely
+const PUBLIC_PATHS = ["/auth/login", "/auth/register", "/auth/onboarding"];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();

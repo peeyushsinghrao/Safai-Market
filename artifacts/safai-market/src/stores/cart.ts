@@ -11,6 +11,9 @@ export interface CartItem {
   itemDiscount: number;
   availableStock: number;
   unit: string;
+  // GST fields
+  gstRate: number;
+  gstInclusive: boolean;
 }
 
 interface CartStore {
@@ -19,6 +22,7 @@ interface CartStore {
   billDiscountType: "flat" | "pct";
   customerId: string;
   notes: string;
+  _submitKey: string;
 
   addItem: (product: {
     id: number;
@@ -27,6 +31,8 @@ interface CartStore {
     buyPrice?: number | string | null;
     currentStock: number | string;
     unit?: string | null;
+    gstRate?: number | string | null;
+    gstInclusive?: boolean | null;
   }) => void;
   removeItem: (productId: number) => void;
   updateQty: (productId: number, delta: number) => void;
@@ -43,6 +49,7 @@ interface CartStore {
   getTotal: () => number;
   getItemCount: () => number;
   getQtyForProduct: (productId: number) => number;
+  getGstBreakdown: () => { isInterState: boolean; totalGst: number; cgst: number; sgst: number; igst: number };
 }
 
 let nextId = 1;
@@ -56,6 +63,7 @@ export const useCartStore = create<CartStore>()(
       billDiscountType: "flat",
       customerId: "",
       notes: "",
+      _submitKey: `sk-${Date.now()}`,
 
       addItem: (product) => {
         const { items } = get();
@@ -86,6 +94,8 @@ export const useCartStore = create<CartStore>()(
                 itemDiscount: 0,
                 availableStock: Number(product.currentStock),
                 unit: product.unit ?? "pcs",
+                gstRate: Number(product.gstRate ?? 0),
+                gstInclusive: product.gstInclusive ?? true,
               },
             ],
           });
@@ -125,9 +135,12 @@ export const useCartStore = create<CartStore>()(
       },
 
       setItemDiscount: (productId, discount) => {
+        // FIX BUG-016: Clamp to [0, unitPrice], no negative discounts
+        const item = get().items.find((i) => i.productId === productId);
+        const clamped = Math.max(0, Math.min(discount, item?.unitPrice ?? discount));
         set({
           items: get().items.map((i) =>
-            i.productId === productId ? { ...i, itemDiscount: discount } : i
+            i.productId === productId ? { ...i, itemDiscount: clamped } : i
           ),
         });
       },
@@ -144,6 +157,7 @@ export const useCartStore = create<CartStore>()(
           billDiscountType: "flat",
           customerId: "",
           notes: "",
+          _submitKey: `sk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         }),
 
       getSubtotal: () => {
@@ -164,6 +178,36 @@ export const useCartStore = create<CartStore>()(
         get().items.reduce((sum, i) => sum + i.quantity, 0),
       getQtyForProduct: (productId) =>
         get().items.find((i) => i.productId === productId)?.quantity ?? 0,
+
+      getGstBreakdown: () => {
+        const { items } = get();
+        const isInterState = false; // Future: derive from shop vs customer state
+        let totalGst = 0;
+
+        for (const item of items) {
+          if (!item.gstRate || item.gstRate === 0) continue;
+          const lineTotal = (item.unitPrice - item.itemDiscount) * item.quantity;
+          if (item.gstInclusive) {
+            totalGst += lineTotal * item.gstRate / (100 + item.gstRate);
+          } else {
+            totalGst += lineTotal * item.gstRate / 100;
+          }
+        }
+
+        // Proportionally reduce GST by bill discount
+        const sub = get().getSubtotal();
+        const discountRatio = sub > 0 ? get().getDiscountAmount() / sub : 0;
+        totalGst = totalGst * (1 - discountRatio);
+
+        const half = totalGst / 2;
+        return {
+          isInterState,
+          totalGst,
+          cgst: isInterState ? 0 : half,
+          sgst: isInterState ? 0 : half,
+          igst: isInterState ? totalGst : 0,
+        };
+      },
     }),
     {
       name: "safai-cart-draft",

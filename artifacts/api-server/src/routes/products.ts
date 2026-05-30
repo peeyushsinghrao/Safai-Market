@@ -27,6 +27,11 @@ router.get("/products", optionalAuth, async (req, res): Promise<void> => {
     ? eq(productsTable.shopId, req.shopId)
     : isNull(productsTable.shopId);
 
+  // Push status + category into SQL — not JS (FIX BUG-006)
+  const activeStatus = status ?? "active";
+  const conditions: any[] = [shopFilter, eq(productsTable.status, activeStatus)];
+  if (categoryId) conditions.push(eq(productsTable.categoryId, categoryId));
+
   let products = await db
     .select({
       id: productsTable.id,
@@ -51,25 +56,19 @@ router.get("/products", optionalAuth, async (req, res): Promise<void> => {
       status: productsTable.status,
       isVariantParent: productsTable.isVariantParent,
       parentProductId: productsTable.parentProductId,
+      hsnCode: productsTable.hsnCode,
+      gstRate: productsTable.gstRate,
+      gstInclusive: productsTable.gstInclusive,
       createdAt: productsTable.createdAt,
       updatedAt: productsTable.updatedAt,
       categoryName: categoriesTable.name,
     })
     .from(productsTable)
     .leftJoin(categoriesTable, eq(productsTable.categoryId, categoriesTable.id))
-    .where(shopFilter)
+    .where(and(...conditions))
     .orderBy(asc(productsTable.currentStock), asc(productsTable.name));
 
-  if (status) {
-    products = products.filter((p) => p.status === status);
-  } else {
-    products = products.filter((p) => p.status === "active");
-  }
-
-  if (categoryId) {
-    products = products.filter((p) => p.categoryId === categoryId);
-  }
-
+  // Search remains in JS (multi-field across name/brand/aliases/barcode)
   if (search) {
     const s = search.toLowerCase();
     products = products.filter(
@@ -82,17 +81,9 @@ router.get("/products", optionalAuth, async (req, res): Promise<void> => {
     );
   }
 
-  if (lowStockOnly) {
-    products = products.filter((p) => Number(p.currentStock) <= Number(p.lowStockLimit) && Number(p.currentStock) > 0);
-  }
-
-  if (outOfStockOnly) {
-    products = products.filter((p) => Number(p.currentStock) <= 0);
-  }
-
-  if (limit) {
-    products = products.slice(0, limit);
-  }
+  if (lowStockOnly) products = products.filter((p) => Number(p.currentStock) <= Number(p.lowStockLimit) && Number(p.currentStock) > 0);
+  if (outOfStockOnly) products = products.filter((p) => Number(p.currentStock) <= 0);
+  if (limit) products = products.slice(0, limit);
 
   res.json(products);
 });

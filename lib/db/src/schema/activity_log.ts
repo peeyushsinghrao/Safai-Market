@@ -1,9 +1,10 @@
-import { pgTable, text, serial, timestamp, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, numeric, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const activityLogTable = pgTable("activity_log", {
   id: serial("id").primaryKey(),
+  shopId: integer("shop_id"),
   eventType: text("event_type").notNull(), // bill_created | bill_cancelled | payment_received | purchase_created | expense_recorded | stock_adjusted
   description: text("description").notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }),

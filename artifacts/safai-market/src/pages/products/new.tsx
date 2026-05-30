@@ -3,23 +3,36 @@ import { useLocation } from "wouter";
 import { useCreateProduct, useListCategories } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { computeMargin, MARGIN_TIER_CONFIG } from "@/lib/profit";
 import { cn } from "@/lib/utils";
 import PageHeader from "@/components/page-header";
 import { FormCard, FormField } from "@/components/form-card";
+import { useSettingsStore } from "@/stores/settings";
+
+const GST_RATES = [
+  { label: "0% (Exempt)", value: "0" },
+  { label: "5%", value: "5" },
+  { label: "12%", value: "12" },
+  { label: "18%", value: "18" },
+  { label: "28%", value: "28" },
+];
 
 export default function ProductNew() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { data: categories } = useListCategories();
   const createProduct = useCreateProduct();
+  const { settings } = useSettingsStore();
+  const gstEnabled = Boolean(settings.gstNumber?.trim());
 
   const [formData, setFormData] = useState({
     name: "", brand: "", categoryId: "", unit: "",
     sellPrice: "", buyPrice: "", mrp: "", wholesalePrice: "",
-    lowStockLimit: "5", initialStock: "0", hinglishAliases: "", barcode: ""
+    lowStockLimit: "5", initialStock: "0", hinglishAliases: "", barcode: "",
+    hsnCode: "", gstRate: "0", gstInclusive: true,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,6 +45,20 @@ export default function ProductNew() {
       formData.sellPrice ? Number(formData.sellPrice) : null
     );
   }, [formData.buyPrice, formData.sellPrice]);
+
+  const gstPreview = useMemo(() => {
+    const rate = Number(formData.gstRate);
+    const price = Number(formData.sellPrice);
+    if (!rate || !price) return null;
+    if (formData.gstInclusive) {
+      const base = price * 100 / (100 + rate);
+      const gst = price - base;
+      return { base: base.toFixed(2), gst: gst.toFixed(2) };
+    } else {
+      const gst = price * rate / 100;
+      return { base: price.toFixed(2), gst: gst.toFixed(2) };
+    }
+  }, [formData.gstRate, formData.sellPrice, formData.gstInclusive]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +81,9 @@ export default function ProductNew() {
         initialStock: Number(formData.initialStock),
         hinglishAliases: formData.hinglishAliases || undefined,
         barcode: formData.barcode || undefined,
+        hsnCode: formData.hsnCode || undefined,
+        gstRate: Number(formData.gstRate),
+        gstInclusive: formData.gstInclusive,
       } as any
     }, {
       onSuccess: () => {
@@ -175,6 +205,70 @@ export default function ProductNew() {
             <Input type="number" name="lowStockLimit" value={formData.lowStockLimit} onChange={handleChange} className="h-12 rounded-xl border-muted focus:border-primary" />
           </FormField>
         </FormCard>
+
+        {gstEnabled && (
+          <FormCard title="GST / Tax">
+            <p className="text-xs text-muted-foreground -mt-1 mb-1">
+              Your shop has GST enabled. Set tax rate per product.
+            </p>
+
+            <FormField label="GST Rate">
+              <Select value={formData.gstRate} onValueChange={(val) => setFormData(p => ({ ...p, gstRate: val }))}>
+                <SelectTrigger className="h-12 rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GST_RATES.map(r => (
+                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+
+            <FormField label="HSN / SAC Code" hint="Optional — for tax compliance">
+              <Input
+                name="hsnCode"
+                value={formData.hsnCode}
+                onChange={handleChange}
+                placeholder="e.g. 3402 (cleaning products)"
+                className="h-12 rounded-xl border-muted focus:border-primary font-mono"
+              />
+            </FormField>
+
+            {Number(formData.gstRate) > 0 && (
+              <div className="flex items-center justify-between rounded-xl border border-muted/50 bg-background px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium">Price includes GST</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.gstInclusive ? "Sell price already includes tax" : "GST added on top of sell price"}
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.gstInclusive}
+                  onCheckedChange={(v) => setFormData(p => ({ ...p, gstInclusive: v }))}
+                />
+              </div>
+            )}
+
+            {gstPreview && Number(formData.gstRate) > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 space-y-1">
+                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider">GST Preview</p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Base Price</span>
+                  <span className="font-semibold">₹{gstPreview.base}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">CGST ({Number(formData.gstRate)/2}%)</span>
+                  <span className="font-semibold text-blue-700">₹{(Number(gstPreview.gst)/2).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">SGST ({Number(formData.gstRate)/2}%)</span>
+                  <span className="font-semibold text-blue-700">₹{(Number(gstPreview.gst)/2).toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+          </FormCard>
+        )}
 
         <FormCard title="Search & Barcode">
           <FormField label="Barcode" hint="Optional — for scanner support">

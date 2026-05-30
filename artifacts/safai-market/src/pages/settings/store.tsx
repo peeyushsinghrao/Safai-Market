@@ -46,7 +46,7 @@ export default function StoreSettings() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.storeName.trim()) {
       toast({ title: "Store name is required", variant: "destructive" });
@@ -63,6 +63,8 @@ export default function StoreSettings() {
       showDiscount: form.showDiscount,
       showGst: form.showGst,
     });
+    // FIX BUG-013: Persist to server so settings survive device switch
+    await useSettingsStore.getState().persistToServer();
     toast({ title: "Settings saved!", description: "Your store settings have been updated." });
     setLocation("/more");
   };

@@ -11,6 +11,7 @@ export interface ReceiptData {
   storeAddress?: string;
   storePhone?: string;
   footerMessage?: string;
+  paperSize?: "58mm" | "A4" | "A5";
   billNumber: string;
   date: string;
   time: string;
@@ -24,12 +25,22 @@ export interface ReceiptData {
   customerName?: string;
   notes?: string;
   estimatedProfit?: number | null;
+  gstBreakdown?: {
+    cgst: number; sgst: number; igst: number;
+    totalGst: number; isInterState: boolean;
+  };
+  showGst?: boolean;
+  storeGstNumber?: string;
+  customerGstin?: string; // For B2B
 }
 
 export function printReceipt(data: ReceiptData) {
   const storeName = data.storeName || "My Shop";
   const storeTag = data.storeTagline || "Safai Market";
   const footerMsg = data.footerMessage || "Thank you for shopping!";
+
+  const hasGst = data.showGst && data.storeGstNumber && data.gstBreakdown && data.gstBreakdown.totalGst > 0;
+  const invoiceTitle = hasGst ? "TAX INVOICE" : "RETAIL BILL";
 
   const fmtCurr = (n: number) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(n);
@@ -51,11 +62,23 @@ export function printReceipt(data: ReceiptData) {
   if (data.upiAmount > 0) paymentRows.push(`<tr><td>UPI</td><td>${fmtCurr(data.upiAmount)}</td></tr>`);
   if (data.udhaarAmount > 0) paymentRows.push(`<tr><td>Udhaar${data.customerName ? ` (${data.customerName})` : ""}</td><td>${fmtCurr(data.udhaarAmount)}</td></tr>`);
 
+  let gstRows = "";
+  if (hasGst && data.gstBreakdown) {
+    const taxable = data.totalAmount - data.gstBreakdown.totalGst;
+    gstRows = `
+      <tr><td>Taxable Amount</td><td style="text-align:right">${fmtCurr(taxable)}</td></tr>
+      ${data.gstBreakdown.isInterState
+        ? `<tr><td>IGST</td><td style="text-align:right">${fmtCurr(data.gstBreakdown.igst)}</td></tr>`
+        : `<tr><td>CGST</td><td style="text-align:right">${fmtCurr(data.gstBreakdown.cgst)}</td></tr>
+           <tr><td>SGST</td><td style="text-align:right">${fmtCurr(data.gstBreakdown.sgst)}</td></tr>`
+      }`;
+  }
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Receipt ${data.billNumber}</title>
+  <title>${invoiceTitle} ${data.billNumber}</title>
   <style>
     @page {
       size: 58mm auto;
@@ -72,6 +95,15 @@ export function printReceipt(data: ReceiptData) {
     }
     .center { text-align: center; }
     .bold { font-weight: bold; }
+    .invoice-title {
+      font-size: 10pt;
+      font-weight: bold;
+      text-align: center;
+      letter-spacing: 2px;
+      margin-bottom: 1mm;
+      border: 1px solid #000;
+      padding: 1mm 0;
+    }
     .store-name {
       font-size: 14pt;
       font-weight: bold;
@@ -87,6 +119,12 @@ export function printReceipt(data: ReceiptData) {
       font-size: 7.5pt;
       text-align: center;
       color: #555;
+      margin-top: 1mm;
+    }
+    .gstin {
+      font-size: 7.5pt;
+      text-align: center;
+      font-weight: bold;
       margin-top: 1mm;
     }
     .divider {
@@ -158,10 +196,12 @@ export function printReceipt(data: ReceiptData) {
   </style>
 </head>
 <body>
+  <div class="invoice-title">${invoiceTitle}</div>
   <div class="store-name">${escapeHtml(storeName)}</div>
   <div class="store-tag">${escapeHtml(storeTag)}</div>
   ${data.storePhone ? `<div class="store-meta">${escapeHtml(data.storePhone)}</div>` : ""}
   ${data.storeAddress ? `<div class="store-meta">${escapeHtml(data.storeAddress)}</div>` : ""}
+  ${hasGst && data.storeGstNumber ? `<div class="gstin">GSTIN: ${escapeHtml(data.storeGstNumber)}</div>` : ""}
   <hr class="divider" />
   <div class="bill-meta">
     <span>Bill: <strong>${data.billNumber}</strong></span>
@@ -194,6 +234,7 @@ export function printReceipt(data: ReceiptData) {
       ? `<tr><td>Subtotal</td><td style="text-align:right">${fmtCurr(data.subtotal)}</td></tr>
          <tr><td>Discount</td><td style="text-align:right">-${fmtCurr(data.discountAmount)}</td></tr>`
       : ""}
+    ${gstRows}
     <tr class="grand-total"><td>TOTAL</td><td style="text-align:right">${fmtCurr(data.totalAmount)}</td></tr>
   </table>
 

@@ -25,6 +25,10 @@ export const productsTable = pgTable("products", {
   barcode: text("barcode"),
   isVariantParent: boolean("is_variant_parent").notNull().default(false),
   parentProductId: integer("parent_product_id"),
+  // GST fields — Phase 2
+  hsnCode: text("hsn_code"),
+  gstRate: numeric("gst_rate", { precision: 5, scale: 2 }).default("0"),
+  gstInclusive: boolean("gst_inclusive").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

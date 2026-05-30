@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Store, Phone, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +9,7 @@ import { useAuthStore } from "@/stores/auth";
 export default function Onboarding() {
   const { toast } = useToast();
   const { getToken, setShop } = useAuthStore();
+  const [, setLocation] = useLocation();
   const [shopName, setShopName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -36,8 +38,17 @@ export default function Onboarding() {
       });
       if (!res.ok) throw new Error(await res.text());
       const shop = await res.json();
-      setShop(shop);
-      toast({ title: "Shop created!", description: `Welcome to ${shop.name}` });
+      setShop({
+        id: shop.id,
+        name: shop.name,
+        ownerId: shop.ownerId,
+        phone: shop.phone,
+        address: shop.address,
+        gstNumber: shop.gstNumber,
+      });
+      toast({ title: "Shop created!", description: `Welcome to ${shop.name} 🎉` });
+      // FIX: Explicit redirect to dashboard after shop creation
+      setLocation("/");
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
