@@ -1,8 +1,10 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { Home, Package, Receipt, Users, Menu } from "lucide-react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settings";
+import { pageVariants } from "@/lib/animations";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -30,7 +32,19 @@ export default function Layout({ children }: LayoutProps) {
       </header>
       
       <main className="flex-1 pb-16 overflow-y-auto">
-        {children}
+        {settings.animationsEnabled ? (
+          <motion.div
+            key={location}
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            {children}
+          </motion.div>
+        ) : (
+          children
+        )}
       </main>
 
       <nav className="fixed bottom-0 w-full border-t bg-card text-card-foreground flex justify-between items-center h-16 pb-safe z-50">

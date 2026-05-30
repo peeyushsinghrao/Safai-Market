@@ -12,6 +12,8 @@ interface ShopSettings {
   showDiscount: boolean;
   showGst: boolean;
   showProfit: boolean;
+  animationsEnabled: boolean;
+  soundsEnabled: boolean;
 }
 
 interface SettingsStore {
@@ -32,6 +34,8 @@ const DEFAULT_SETTINGS: ShopSettings = {
   showDiscount: true,
   showGst: false,
   showProfit: false,
+  animationsEnabled: true,
+  soundsEnabled: true,
 };
 
 export const useSettingsStore = create<SettingsStore>()(

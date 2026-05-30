@@ -1,6 +1,9 @@
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { successVariants, staggerContainer, staggerItem } from "@/lib/animations";
+import { playSound } from "@/lib/sounds";
 import { useSettingsStore } from "@/stores/settings";
 import {
   Search, X, ShoppingCart, Plus, Minus, Trash2,
@@ -466,7 +469,7 @@ function CheckoutSheet({
     if (items.length === 0) return;
 
     // FIX BUG-003: Only validate udhaar against real customer (not Walk-in empty string)
-    const hasRealCustomer = Boolean(customerId && customerId !== "");
+    const hasRealCustomer = Boolean(customerId && customerId !== "walkin");
     if (udhaarAmount > 0 && !hasRealCustomer) {
       toast({
         title: "Customer required",
@@ -536,12 +539,14 @@ function CheckoutSheet({
             storeGstNumber: settings.gstNumber,
             showGst: settings.showGst,
           });
+          playSound("billSuccess");
           clearCart();
           setCashAmount("");
           setUpiAmount("");
         },
         onError: (err) => {
           setSubmitted(false);
+          playSound("error");
           toast({
             title: "Error creating bill",
             description: err.message,
@@ -634,7 +639,7 @@ function CheckoutSheet({
                   <SelectValue placeholder="Walk-in customer" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Walk-in</SelectItem>
+                  <SelectItem value="walkin">Walk-in</SelectItem>
                   {customers?.map((c) => (
                     <SelectItem key={c.id} value={String(c.id)}>
                       {c.name}
@@ -791,9 +796,14 @@ function BillSuccessScreen({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center">
-      <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+      <motion.div
+        variants={successVariants}
+        initial="initial"
+        animate="animate"
+        className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4"
+      >
         <CheckCircle2 className="w-12 h-12 text-green-600" />
-      </div>
+      </motion.div>
       <h2 className="text-2xl font-bold text-green-700 mb-1">Bill Saved!</h2>
       <p className="text-muted-foreground text-sm font-mono mb-1">
         {bill.billNumber}
@@ -834,35 +844,46 @@ function BillSuccessScreen({
         </div>
       )}
 
-      <div className="w-full space-y-2 max-w-sm">
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" className="h-12 gap-2" onClick={handleShare}>
-            <span>💬</span> Share
+      <motion.div
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
+        className="w-full space-y-2 max-w-sm"
+      >
+        <motion.div variants={staggerItem}>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" className="h-12 gap-2" onClick={handleShare}>
+              <span>💬</span> Share
+            </Button>
+            <Button
+              variant={undefined}
+              className="h-12 gap-2"
+              onClick={handlePrint}
+            >
+              <Printer className="w-4 h-4" /> Print
+            </Button>
+          </div>
+        </motion.div>
+        <motion.div variants={staggerItem}>
+          <Button
+            className="w-full h-14 text-lg font-bold"
+            onClick={onNewBill}
+            data-testid="button-new-bill"
+          >
+            <Plus className="w-5 h-5 mr-2" /> New Bill
           </Button>
+        </motion.div>
+        <motion.div variants={staggerItem}>
           <Button
             variant="outline"
-            className="h-12 gap-2"
-            onClick={handlePrint}
+            className="w-full h-11"
+            onClick={onHome}
+            data-testid="button-go-home"
           >
-            <Printer className="w-4 h-4" /> Print
+            Back to Dashboard
           </Button>
-        </div>
-        <Button
-          className="w-full h-14 text-lg font-bold"
-          onClick={onNewBill}
-          data-testid="button-new-bill"
-        >
-          <Plus className="w-5 h-5 mr-2" /> New Bill
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full h-11"
-          onClick={onHome}
-          data-testid="button-go-home"
-        >
-          Back to Dashboard
-        </Button>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
@@ -930,6 +951,7 @@ export default function Billing() {
           const match = allProducts?.find((p: any) => p.barcode === barcode);
           if (match && match.status === "active") {
             cartStore.addItem(match as any);
+            playSound("scanSuccess");
             toast({ title: `Added: ${match.name}`, description: formatCurrency(Number(match.sellPrice)) });
           } else {
             setSearch(barcode);
@@ -962,6 +984,7 @@ export default function Billing() {
 
   const handleAddProduct = (p: ProductItem) => {
     cartStore.addItem(p as any);
+    playSound("cartAdd");
   };
 
   const handleAddBundle = (bundle: any) => {
@@ -1324,9 +1347,17 @@ export default function Billing() {
             >
               <div className="bg-white/10 rounded-xl w-9 h-9 flex items-center justify-center shrink-0 relative">
                 <ShoppingCart className="w-4 h-4" />
-                <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                  {itemCount}
-                </span>
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={itemCount}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                    className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"
+                  >
+                    {itemCount}
+                  </motion.span>
+                </AnimatePresence>
               </div>
               <div className="text-left min-w-0">
                 <p className="text-[11px] text-white/60 leading-none mb-0.5">{itemCount} item{itemCount !== 1 ? "s" : ""}</p>
@@ -1381,6 +1412,7 @@ export default function Billing() {
             );
             if (exactMatch) {
               cartStore.addItem(exactMatch as any);
+              playSound("scanSuccess");
               toast({
                 title: `Added: ${exactMatch.name}`,
                 description: formatCurrency(Number(exactMatch.sellPrice)),

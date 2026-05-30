@@ -33,6 +33,9 @@ import ProfitReports from "./pages/profit/index";
 import BillsHistory from "./pages/bills/index";
 import BillDetail from "./pages/bills/detail";
 import StoreSettings from "./pages/settings/store";
+import DevicesPage from "./pages/settings/devices";
+import BillSettings from "./pages/settings/bill-settings";
+import ProductVariants from "./pages/products/variants";
 import BundlesList from "./pages/bundles/index";
 import BundleNew from "./pages/bundles/new";
 import BundleDetail from "./pages/bundles/detail";
@@ -111,6 +114,9 @@ function Router() {
       <Route path="/stock-movements" component={StockMovementsPage} />
 
       <Route path="/settings/store" component={StoreSettingsPage} />
+      <Route path="/settings/bill-settings" component={() => <Layout><BillSettings /></Layout>} />
+      <Route path="/settings/devices" component={() => <Layout><DevicesPage /></Layout>} />
+      <Route path="/products/:id/variants" component={() => <Layout><ProductVariants /></Layout>} />
 
       <Route path="/more" component={MoreMenuPage} />
       <Route path="/profit" component={ProfitReportsPage} />
