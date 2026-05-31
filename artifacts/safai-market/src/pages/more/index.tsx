@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { 
   Truck, ShoppingCart, Receipt, BookOpen, Package, TrendingDown,
   BarChart2, FileText, Layers, Settings, Store, LogOut, Smartphone,
-  Download, RefreshCw
+  Download, RefreshCw, ArrowDownToLine
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settings";
@@ -19,6 +19,12 @@ const menuSections = [
       { href: "/daily-closing", label: "Daily Closing", sub: "End-of-day summary", icon: BookOpen, color: "bg-blue-100 text-blue-700" },
       { href: "/stock-movements", label: "Stock Movements", sub: "In / out history", icon: TrendingDown, color: "bg-purple-100 text-purple-700" },
       { href: "/low-stock", label: "Finishing Stock", sub: "Items running low", icon: Package, color: "bg-amber-100 text-amber-700" },
+    ]
+  },
+  {
+    title: "Inventory",
+    items: [
+      { href: "/stock/receive", label: "Receive Stock", sub: "Rapid stock-in for multiple products", icon: ArrowDownToLine, color: "bg-emerald-100 text-emerald-700" },
     ]
   },
   {

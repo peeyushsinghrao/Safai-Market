@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { X, TrendingUp } from "lucide-react";
+import { X, TrendingUp, Loader2 } from "lucide-react";
 import { useListCategories, useCreateProduct } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { computeMargin, MARGIN_TIER_CONFIG } from "@/lib/profit";
 import { formatCurrency } from "@/lib/format";
+import { lookupBarcodeProduct } from "@/lib/barcode-lookup";
 
 interface QuickAddProductProps {
   open: boolean;
@@ -28,6 +29,7 @@ export default function QuickAddProduct({
   const [stock, setStock] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [addToCart, setAddToCart] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
 
   const { data: categories } = useListCategories();
   const createProduct = useCreateProduct();
@@ -40,8 +42,22 @@ export default function QuickAddProduct({
       setStock("");
       setCategoryId("");
       setAddToCart(false);
+      setLookingUp(false);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (open && prefilledBarcode) {
+      setLookingUp(true);
+      lookupBarcodeProduct(prefilledBarcode)
+        .then((info) => {
+          if (info?.name) setName((prev) => prev || info.name!);
+          else if (info?.brand) setName((prev) => prev || info.brand!);
+          setLookingUp(false);
+        })
+        .catch(() => setLookingUp(false));
+    }
+  }, [open, prefilledBarcode]);
 
   const margin = computeMargin(
     buyPrice ? Number(buyPrice) : null,
@@ -97,13 +113,25 @@ export default function QuickAddProduct({
           <div className="w-10 h-1 bg-muted-foreground/20 rounded-full" />
         </div>
         <div className="flex items-center justify-between px-4 pb-3 border-b shrink-0">
-          <h2 className="font-bold text-base">Quick Add Product</h2>
+          <div>
+            <h2 className="font-bold text-base">Quick Add Product</h2>
+            {prefilledBarcode && (
+              <p className="text-xs text-muted-foreground font-mono">Barcode: {prefilledBarcode}</p>
+            )}
+          </div>
           <button onClick={onClose} className="p-1">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
         <div className="overflow-y-auto flex-1 p-4 space-y-4">
+          {lookingUp && (
+            <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Looking up product info...
+            </div>
+          )}
+
           {/* Name */}
           <div>
             <label className="text-xs font-semibold text-muted-foreground block mb-1">

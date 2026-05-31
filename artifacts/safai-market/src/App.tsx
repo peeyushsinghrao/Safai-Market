@@ -42,6 +42,7 @@ import BundleNew from "./pages/bundles/new";
 import BundleDetail from "./pages/bundles/detail";
 import ExportPage from "./pages/settings/export";
 import SyncCenter from "./pages/settings/sync-center";
+import ReceiveStock from "./pages/stock/receive";
 
 import Login from "./pages/auth/login";
 import Register from "./pages/auth/register";
@@ -136,6 +137,7 @@ function Router() {
 
       <Route path="/settings/export" component={ExportPageRoute} />
       <Route path="/settings/sync-center" component={SyncCenterRoute} />
+      <Route path="/stock/receive" component={() => <Layout><ReceiveStock /></Layout>} />
 
       <Route component={NotFoundPage} />
     </Switch>

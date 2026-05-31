@@ -1,13 +1,13 @@
 import { useParams, useLocation } from "wouter";
 import { useGetBill } from "@workspace/api-client-react";
-import { Receipt, Calendar, Printer, Share2, MessageCircle, Mail, ChevronLeft, X } from "lucide-react";
+import { Receipt, Calendar, Printer, Share2, MessageCircle, Mail, ChevronLeft, X, Download } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
-import { printReceipt } from "@/lib/receipt";
+import { printReceipt, downloadReceiptAsFile } from "@/lib/receipt";
 import { useSettingsStore } from "@/stores/settings";
 import { cn } from "@/lib/utils";
 
@@ -99,10 +99,10 @@ export default function BillDetail() {
 
   const { data: bill, isLoading } = useGetBill(Number(id));
 
-  const handlePrint = () => {
-    if (!bill) return;
+  const buildReceiptData = () => {
+    if (!bill) return null;
     const now = new Date(bill.createdAt);
-    printReceipt({
+    return {
       storeName,
       billNumber: bill.billNumber,
       date: now.toLocaleDateString("en-IN"),
@@ -121,7 +121,18 @@ export default function BillDetail() {
       udhaarAmount: Number(bill.udhaarAmount) || 0,
       customerName: (bill as any).customerName,
       notes: bill.notes ?? undefined,
-    });
+      storeLogo: settings.logoUrl,
+    };
+  };
+
+  const handlePrint = () => {
+    const d = buildReceiptData();
+    if (d) printReceipt(d);
+  };
+
+  const handleDownload = () => {
+    const d = buildReceiptData();
+    if (d) downloadReceiptAsFile(d);
   };
 
   if (isLoading) {
@@ -292,6 +303,10 @@ export default function BillDetail() {
           <Button variant="outline" className="flex-1 h-12 gap-2 rounded-xl font-semibold" onClick={handlePrint}>
             <Printer className="w-4 h-4" />
             Print
+          </Button>
+          <Button variant="outline" className="flex-1 h-12 gap-2 rounded-xl font-semibold" onClick={handleDownload}>
+            <Download className="w-4 h-4" />
+            Download
           </Button>
           <Button variant="outline" className="flex-1 h-12 gap-2 rounded-xl font-semibold" onClick={() => setShareOpen(true)}>
             <Share2 className="w-4 h-4" />

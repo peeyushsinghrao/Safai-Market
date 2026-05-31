@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { AlignLeft, Eye, Volume2, VolumeX, Sparkles } from "lucide-react";
+import { AlignLeft, Eye, Volume2, VolumeX, Sparkles, Image } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +23,7 @@ export default function BillSettings() {
     showDiscount: settings.showDiscount,
     showGst: settings.showGst,
     showProfit: settings.showProfit,
+    logoUrl: settings.logoUrl || "",
   });
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const [animationsOn, setAnimationsOn] = useState(settings.animationsEnabled ?? true);
@@ -34,6 +35,7 @@ export default function BillSettings() {
       showDiscount: settings.showDiscount,
       showGst: settings.showGst,
       showProfit: settings.showProfit,
+      logoUrl: settings.logoUrl || "",
     });
   }, []);
 
@@ -47,6 +49,7 @@ export default function BillSettings() {
       showProfit: form.showProfit,
       animationsEnabled: animationsOn,
       soundsEnabled: soundOn,
+      logoUrl: form.logoUrl.trim() || undefined,
     });
     toast({ title: "Bill settings saved!" });
     setLocation("/more");
@@ -84,6 +87,29 @@ export default function BillSettings() {
       <PageHeader title="Bill Settings" subtitle="Receipt format & display options" backTo="/more" />
 
       <form onSubmit={handleSave} className="flex-1 p-4 space-y-4 pb-24">
+
+        <FormCard title="Store Logo">
+          <FormField label="Logo URL" hint="Paste an image URL — shown at the top of printed receipts">
+            <div className="relative">
+              <Image className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+              <input
+                type="url"
+                value={form.logoUrl}
+                onChange={(e) => setForm(p => ({ ...p, logoUrl: e.target.value }))}
+                placeholder="https://example.com/logo.png (optional)"
+                className="w-full h-12 pl-10 pr-4 rounded-xl border border-muted bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+            {form.logoUrl && (
+              <img
+                src={form.logoUrl}
+                alt="Logo preview"
+                className="h-14 w-auto mt-2 rounded object-contain border border-muted/50 p-1"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            )}
+          </FormField>
+        </FormCard>
 
         <FormCard title="Paper & Format">
           <FormField label="Paper Size">

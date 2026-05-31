@@ -31,10 +31,11 @@ export interface ReceiptData {
   };
   showGst?: boolean;
   storeGstNumber?: string;
-  customerGstin?: string; // For B2B
+  customerGstin?: string;
+  storeLogo?: string;
 }
 
-export function printReceipt(data: ReceiptData) {
+export function buildReceiptHtml(data: ReceiptData): string {
   const storeName = data.storeName || "My Shop";
   const storeTag = data.storeTagline || "Safai Market";
   const footerMsg = data.footerMessage || "Thank you for shopping!";
@@ -74,7 +75,7 @@ export function printReceipt(data: ReceiptData) {
       }`;
   }
 
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8" />
@@ -95,6 +96,8 @@ export function printReceipt(data: ReceiptData) {
     }
     .center { text-align: center; }
     .bold { font-weight: bold; }
+    .logo { text-align: center; margin-bottom: 2mm; }
+    .logo img { max-height: 16mm; max-width: 54mm; object-fit: contain; }
     .invoice-title {
       font-size: 10pt;
       font-weight: bold;
@@ -196,6 +199,7 @@ export function printReceipt(data: ReceiptData) {
   </style>
 </head>
 <body>
+  ${data.storeLogo ? `<div class="logo"><img src="${data.storeLogo}" alt="logo" /></div>` : ""}
   <div class="invoice-title">${invoiceTitle}</div>
   <div class="store-name">${escapeHtml(storeName)}</div>
   <div class="store-tag">${escapeHtml(storeTag)}</div>
@@ -252,7 +256,10 @@ export function printReceipt(data: ReceiptData) {
   <div style="margin-top: 5mm;"></div>
 </body>
 </html>`;
+}
 
+export function printReceipt(data: ReceiptData) {
+  const html = buildReceiptHtml(data);
   const win = window.open("", "_blank", "width=300,height=600");
   if (!win) {
     alert("Popup blocked. Please allow popups to print receipts.");
@@ -265,6 +272,19 @@ export function printReceipt(data: ReceiptData) {
     win.print();
     win.close();
   }, 300);
+}
+
+export function downloadReceiptAsFile(data: ReceiptData) {
+  const html = buildReceiptHtml(data);
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `bill-${data.billNumber}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function escapeHtml(str: string): string {

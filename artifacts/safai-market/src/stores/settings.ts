@@ -14,6 +14,7 @@ interface ShopSettings {
   showProfit: boolean;
   animationsEnabled: boolean;
   soundsEnabled: boolean;
+  logoUrl?: string;
 }
 
 interface SettingsStore {

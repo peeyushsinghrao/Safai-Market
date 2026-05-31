@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { Link } from "wouter";
+import React, { useState, lazy, Suspense } from "react";
+import { Link, useLocation } from "wouter";
 import { useListProducts, useListCategories } from "@workspace/api-client-react";
-import { Plus, Search, ArrowUpDown, AlertTriangle } from "lucide-react";
+import { Plus, Search, AlertTriangle, Camera } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,10 +11,14 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { computeMargin, MARGIN_TIER_CONFIG } from "@/lib/profit";
 
+const BarcodeScannerModal = lazy(() => import("@/components/barcode-scanner-modal"));
+
 export default function ProductsList() {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | undefined>();
   const [sortBy, setSortBy] = useState<"name" | "stock" | "margin">("name");
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   const { data: categories } = useListCategories();
   const { data: products, isLoading } = useListProducts({ 
@@ -35,17 +39,36 @@ export default function ProductsList() {
     });
   }, [products, sortBy]);
 
+  const handleBarcodeDetected = (barcode: string) => {
+    setScannerOpen(false);
+    const match = products?.find((p: any) => p.barcode === barcode);
+    if (match) {
+      setLocation(`/products/${match.id}`);
+    } else {
+      setLocation(`/products/new?barcode=${encodeURIComponent(barcode)}`);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-gray-50/50">
       <div className="sticky top-14 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input 
-            className="pl-10 h-12 bg-background border-muted shadow-sm text-base rounded-xl"
-            placeholder="Search products, brands, aliases..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input 
+              className="pl-10 h-12 bg-background border-muted shadow-sm text-base rounded-xl"
+              placeholder="Search products, brands, aliases..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <button
+            className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary active:bg-primary/20 transition-colors"
+            onClick={() => setScannerOpen(true)}
+            title="Scan barcode to find product"
+          >
+            <Camera className="w-5 h-5" />
+          </button>
         </div>
         
         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -194,6 +217,14 @@ export default function ProductsList() {
           </Button>
         </Link>
       </div>
+
+      <Suspense fallback={null}>
+        <BarcodeScannerModal
+          open={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onDetected={handleBarcodeDetected}
+        />
+      </Suspense>
     </div>
   );
 }

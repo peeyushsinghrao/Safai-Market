@@ -8,7 +8,7 @@ import { useSettingsStore } from "@/stores/settings";
 import {
   Search, X, ShoppingCart, Plus, Minus, Trash2,
   CheckCircle2, TrendingUp, AlertTriangle, Printer,
-  Package, Tag, PlusCircle, Layers, Camera,
+  Package, Tag, PlusCircle, Layers, Camera, ScanLine,
 } from "lucide-react";
 import { useBundles } from "@/hooks/use-bundles";
 import { printReceipt } from "@/lib/receipt";
@@ -178,6 +178,7 @@ function CartDrawer({
     billDiscount,
     billDiscountType,
     updateQty,
+    setQty,
     removeItem,
     setItemDiscount,
     setBillDiscount,
@@ -268,31 +269,65 @@ function CartDrawer({
                     </button>
                   </div>
                 </div>
-                {/* Stepper */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 rounded-full shrink-0"
-                    onClick={() => updateQty(item.productId, -1)}
-                    disabled={item.quantity <= 1}
-                  >
-                    <Minus className="w-3 h-3" />
-                  </Button>
-                  <span className="w-10 text-center font-bold text-sm">
-                    {item.quantity}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 rounded-full shrink-0"
-                    onClick={() => updateQty(item.productId, 1)}
-                    disabled={item.quantity >= item.availableStock}
-                  >
-                    <Plus className="w-3 h-3" />
-                  </Button>
-                  {/* Item discount */}
-                  <div className="flex-1 flex items-center gap-1 ml-2">
+                {/* Stepper + qty chips */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-full shrink-0"
+                      onClick={() => updateQty(item.productId, -1)}
+                      disabled={item.quantity <= 1}
+                    >
+                      <Minus className="w-3 h-3" />
+                    </Button>
+                    <input
+                      type="number"
+                      min="1"
+                      max={item.availableStock}
+                      value={item.quantity}
+                      onChange={(e) => {
+                        const v = Math.max(1, Math.min(Number(e.target.value) || 1, item.availableStock));
+                        setQty(item.productId, v);
+                      }}
+                      className="w-12 h-9 text-center font-bold text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-full shrink-0"
+                      onClick={() => updateQty(item.productId, 1)}
+                      disabled={item.quantity >= item.availableStock}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                    {/* Qty chips */}
+                    <div className="flex gap-1 flex-wrap">
+                      {[1, 5, 10, 25].map((chip) => {
+                        const wouldExceed = item.quantity + chip > item.availableStock;
+                        return (
+                          <button
+                            key={chip}
+                            className={cn(
+                              "h-7 px-2 rounded-md text-[11px] font-semibold border transition-colors",
+                              wouldExceed
+                                ? "opacity-40 cursor-not-allowed bg-muted text-muted-foreground border-muted"
+                                : "bg-primary/5 text-primary border-primary/20 active:scale-95 hover:bg-primary/10"
+                            )}
+                            onClick={() => {
+                              if (!wouldExceed) {
+                                setQty(item.productId, item.quantity + chip);
+                              }
+                            }}
+                            disabled={wouldExceed}
+                          >
+                            +{chip}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
                     <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                       Disc ₹
                     </span>
@@ -898,7 +933,11 @@ export default function Billing() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [billSuccess, setBillSuccess] = useState<BillSuccessData | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddBarcode, setQuickAddBarcode] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [continuousScan, setContinuousScan] = useState(false);
+  const [lastScanned, setLastScanned] = useState<string | null>(null);
+  const continuousScanRef = useRef(false);
   const [viewMode, setViewMode] = useState<"products" | "bundles">("products");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -1028,6 +1067,7 @@ export default function Billing() {
       unit: product.unit,
     });
     setQuickAddOpen(false);
+    setQuickAddBarcode("");
   };
 
   const fstAssociations = useMemo(() => {
@@ -1064,6 +1104,19 @@ export default function Billing() {
     return assocResult;
   }, [cartStore.items, allProducts]);
 
+  const toggleContinuousScan = () => {
+    if (continuousScan) {
+      setContinuousScan(false);
+      continuousScanRef.current = false;
+      setScannerOpen(false);
+      setLastScanned(null);
+    } else {
+      setContinuousScan(true);
+      continuousScanRef.current = true;
+      setScannerOpen(true);
+    }
+  };
+
   const handleCheckoutOpen = () => {
     setCartOpen(false);
     setTimeout(() => setCheckoutOpen(true), 300);
@@ -1091,7 +1144,9 @@ export default function Billing() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50/50">
+    <div className="flex flex-col h-full bg-gray-50/50 lg:flex-row">
+      {/* LEFT PANEL: search + products */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
       {/* Search Bar */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b">
         <div className="p-3">
@@ -1115,17 +1170,39 @@ export default function Billing() {
                 </button>
               )}
             </div>
-            {/* Camera barcode scan button */}
+            {/* Camera / Continuous Scan button */}
             <button
-              className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary active:bg-primary/20 transition-colors"
-              onClick={() => setScannerOpen(true)}
-              title="Scan barcode with camera"
+              className={cn(
+                "w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 transition-colors active:scale-95",
+                continuousScan
+                  ? "bg-green-500 border-green-600 text-white"
+                  : "bg-primary/10 border-primary/20 text-primary active:bg-primary/20"
+              )}
+              onClick={toggleContinuousScan}
+              title={continuousScan ? "Scan mode ON — tap to turn off" : "Start scan mode"}
               data-testid="btn-barcode-scan"
             >
-              <Camera className="w-5 h-5" />
+              {continuousScan ? <ScanLine className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
             </button>
           </div>
         </div>
+
+        {/* Continuous Scan Mode Banner */}
+        {continuousScan && (
+          <div className="bg-green-500 text-white px-3 py-1.5 flex items-center gap-2 text-xs font-semibold">
+            <ScanLine className="w-3.5 h-3.5 animate-pulse" />
+            Scan Mode ON — point camera at barcode
+            {lastScanned && (
+              <span className="ml-auto opacity-80 truncate max-w-[140px]">Last: {lastScanned}</span>
+            )}
+            <button
+              className="ml-auto shrink-0 bg-white/20 rounded-md px-2 py-0.5 hover:bg-white/30"
+              onClick={toggleContinuousScan}
+            >
+              Stop
+            </button>
+          </div>
+        )}
 
         {/* View Mode Toggle */}
         <div className="px-3 pb-2 flex items-center gap-2">
@@ -1335,9 +1412,91 @@ export default function Billing() {
         )}
       </div>
 
-      {/* Sticky Cart Footer — split: left opens cart drawer, right goes direct to checkout */}
+      </div>{/* end LEFT PANEL */}
+
+      {/* RIGHT PANEL: desktop cart (hidden on mobile) */}
+      <div className="hidden lg:flex flex-col w-[380px] shrink-0 border-l bg-white">
+        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+          <h2 className="font-bold text-base">
+            Cart{" "}
+            <span className="text-muted-foreground font-normal text-sm">({itemCount} items)</span>
+          </h2>
+          {itemCount > 0 && (
+            <span className="text-sm font-bold text-primary">{formatCurrency(cartTotal)}</span>
+          )}
+        </div>
+        {itemCount === 0 ? (
+          <div className="flex flex-col items-center justify-center flex-1 text-center p-8 text-muted-foreground">
+            <ShoppingCart className="w-12 h-12 mb-3 opacity-20" />
+            <p className="text-sm">Cart is empty</p>
+            <p className="text-xs mt-1">Tap a product to add it</p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-y-auto flex-1 divide-y border-t">
+              {cartStore.items.map((item) => {
+                const lineTotal = (item.unitPrice - item.itemDiscount) * item.quantity;
+                return (
+                  <div key={item.productId} className="p-3 flex flex-col gap-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm leading-tight truncate">{item.productName}</p>
+                        <p className="text-xs text-muted-foreground">{formatCurrency(item.unitPrice)} each</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-sm">{formatCurrency(lineTotal)}</p>
+                        <button onClick={() => cartStore.removeItem(item.productId)} className="text-destructive/60 hover:text-destructive mt-0.5">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button className="w-7 h-7 rounded-md border flex items-center justify-center text-primary active:scale-95" onClick={() => cartStore.updateQty(item.productId, -1)} disabled={item.quantity <= 1}>
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <input type="number" min="1" max={item.availableStock} value={item.quantity}
+                        onChange={(e) => {
+                          const v = Math.max(1, Math.min(Number(e.target.value) || 1, item.availableStock));
+                          cartStore.setQty(item.productId, v);
+                        }}
+                        className="w-10 h-7 text-center text-sm font-bold border rounded-md focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      />
+                      <button className="w-7 h-7 rounded-md border flex items-center justify-center text-primary active:scale-95" onClick={() => cartStore.updateQty(item.productId, 1)} disabled={item.quantity >= item.availableStock}>
+                        <Plus className="w-3 h-3" />
+                      </button>
+                      <div className="flex gap-0.5 ml-1">
+                        {[1, 5, 10, 25].map((chip) => {
+                          const wouldExceed = item.quantity + chip > item.availableStock;
+                          return (
+                            <button key={chip}
+                              className={cn("h-6 px-1.5 rounded text-[10px] font-semibold border", wouldExceed ? "opacity-30 cursor-not-allowed" : "bg-primary/5 text-primary border-primary/20 active:scale-95")}
+                              onClick={() => { if (!wouldExceed) cartStore.setQty(item.productId, item.quantity + chip); }}
+                              disabled={wouldExceed}
+                            >+{chip}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="border-t p-3 space-y-2 shrink-0">
+              <div className="flex justify-between font-bold text-primary">
+                <span>Total</span>
+                <span className="text-lg">{formatCurrency(cartTotal)}</span>
+              </div>
+              <Button className="w-full h-11 font-bold" onClick={handleCheckoutOpen}>
+                Checkout →
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Sticky Cart Footer — mobile only */}
       {itemCount > 0 && (
-        <div className="fixed left-0 right-0 z-30 px-3" style={{ bottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}>
+        <div className="fixed left-0 right-0 z-30 px-3 lg:hidden" style={{ bottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}>
           <div className="flex gap-2">
             {/* Left: view / edit cart */}
             <button
@@ -1395,8 +1554,9 @@ export default function Billing() {
       {/* Quick Add Product Sheet */}
       <QuickAddProduct
         open={quickAddOpen}
-        onClose={() => setQuickAddOpen(false)}
+        onClose={() => { setQuickAddOpen(false); setQuickAddBarcode(""); }}
         onSaved={handleQuickAddSaved}
+        prefilledBarcode={quickAddBarcode}
         showAddToCart={true}
       />
 
@@ -1404,7 +1564,14 @@ export default function Billing() {
       <Suspense fallback={null}>
         <BarcodeScannerModal
           open={scannerOpen}
-          onClose={() => setScannerOpen(false)}
+          onClose={() => {
+            setScannerOpen(false);
+            if (continuousScanRef.current) {
+              setContinuousScan(false);
+              continuousScanRef.current = false;
+              setLastScanned(null);
+            }
+          }}
           onDetected={(barcode) => {
             setScannerOpen(false);
             const exactMatch = allProducts?.find(
@@ -1413,13 +1580,24 @@ export default function Billing() {
             if (exactMatch) {
               cartStore.addItem(exactMatch as any);
               playSound("scanSuccess");
+              setLastScanned(exactMatch.name);
               toast({
                 title: `Added: ${exactMatch.name}`,
                 description: formatCurrency(Number(exactMatch.sellPrice)),
               });
+              if (continuousScanRef.current) {
+                setTimeout(() => {
+                  if (continuousScanRef.current) setScannerOpen(true);
+                }, 800);
+              }
             } else {
-              setSearch(barcode);
-              setTimeout(() => searchInputRef.current?.focus(), 100);
+              if (continuousScanRef.current) {
+                setContinuousScan(false);
+                continuousScanRef.current = false;
+                setLastScanned(null);
+              }
+              setQuickAddBarcode(barcode);
+              setQuickAddOpen(true);
             }
           }}
         />
