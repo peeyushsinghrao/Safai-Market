@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
+import { useCartStore } from "@/stores/cart";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setSession, setShop, isLoading } = useAuthStore();
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loadShop(session.access_token);
       } else {
         setShop(null);
+        useCartStore.getState().clearCart(); // FIX BUG-010: clear cart on logout
       }
     });
 

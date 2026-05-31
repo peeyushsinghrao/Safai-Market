@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit, AlertTriangle, ArrowDown, ArrowUp, Plus, Minus, Package, History, Layers } from "lucide-react";
+import { Edit, AlertTriangle, ArrowDown, ArrowUp, Plus, Minus, Package, History, Layers, Tag } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -92,6 +92,15 @@ export default function ProductDetail() {
         backTo="/products"
         right={
           <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation(`/products/${id}/barcode-label`)}
+              className="text-primary-foreground hover:bg-primary-foreground/20 h-9 gap-1.5 rounded-xl text-xs font-semibold px-3"
+            >
+              <Tag className="w-3.5 h-3.5" />
+              Print Label
+            </Button>
             <Button
               variant="ghost"
               size="sm"

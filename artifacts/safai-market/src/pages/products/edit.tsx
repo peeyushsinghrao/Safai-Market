@@ -1,5 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { useLocation, useParams } from "wouter";
+import { Camera } from "lucide-react";
+const BarcodeScannerModal = lazy(() => import("@/components/barcode-scanner-modal"));
 import { useGetProduct, useUpdateProduct, useListCategories } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,7 @@ export default function ProductEdit() {
   const { settings } = useSettingsStore();
   const gstEnabled = Boolean(settings.gstNumber?.trim());
 
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "", brand: "", categoryId: "", unit: "",
     sellPrice: "", buyPrice: "", mrp: "", wholesalePrice: "",
@@ -38,6 +41,11 @@ export default function ProductEdit() {
     hsnCode: "", gstRate: "0", gstInclusive: true as boolean,
   });
   const [initialized, setInitialized] = useState(false);
+
+  const handleBarcodeDetected = (barcode: string) => {
+    setFormData(prev => ({ ...prev, barcode }));
+    setScannerOpen(false);
+  };
 
   useEffect(() => {
     if (product && !initialized) {
@@ -53,9 +61,9 @@ export default function ProductEdit() {
         lowStockLimit: product.lowStockLimit != null ? String(Number(product.lowStockLimit)) : "5",
         hinglishAliases: product.hinglishAliases ?? "",
         barcode: product.barcode ?? "",
-        hsnCode: (product as any).hsnCode ?? "",
-        gstRate: (product as any).gstRate != null ? String(Number((product as any).gstRate)) : "0",
-        gstInclusive: (product as any).gstInclusive ?? true,
+        hsnCode: product.hsnCode ?? "",
+        gstRate: product.gstRate != null ? String(Number(product.gstRate)) : "0",
+        gstInclusive: product.gstInclusive ?? true,
       });
       setInitialized(true);
     }
@@ -308,7 +316,30 @@ export default function ProductEdit() {
 
         <FormCard title="Search & Barcode">
           <FormField label="Barcode" hint="Optional — for scanner support">
-            <Input name="barcode" value={formData.barcode} onChange={handleChange} placeholder="Scan or type barcode..." className="h-12 rounded-xl border-muted focus:border-primary font-mono tracking-widest" />
+            <div className="flex gap-2">
+              <Input
+                name="barcode"
+                value={formData.barcode}
+                onChange={handleChange}
+                placeholder="Scan or type barcode..."
+                className="h-12 rounded-xl border-muted focus:border-primary font-mono tracking-widest flex-1"
+              />
+              <button
+                type="button"
+                onClick={() => setScannerOpen(true)}
+                className="w-12 h-12 rounded-xl border border-muted bg-white flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 active:scale-95 transition-all shrink-0"
+                title="Scan barcode with camera"
+              >
+                <Camera className="w-5 h-5" />
+              </button>
+            </div>
+            <Suspense fallback={null}>
+              <BarcodeScannerModal
+                open={scannerOpen}
+                onClose={() => setScannerOpen(false)}
+                onDetected={handleBarcodeDetected}
+              />
+            </Suspense>
           </FormField>
           <FormField label="Hinglish / Search Aliases" hint="Optional">
             <Input name="hinglishAliases" value={formData.hinglishAliases} onChange={handleChange} placeholder="e.g. toilet cleaner, bathroom saaf" className="h-12 rounded-xl border-muted focus:border-primary" />

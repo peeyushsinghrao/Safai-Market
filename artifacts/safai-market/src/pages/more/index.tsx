@@ -2,7 +2,8 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { 
   Truck, ShoppingCart, Receipt, BookOpen, Package, TrendingDown,
-  BarChart2, FileText, Layers, Settings, Store, LogOut, Smartphone
+  BarChart2, FileText, Layers, Settings, Store, LogOut, Smartphone,
+  Download, RefreshCw
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settings";
@@ -40,6 +41,8 @@ const menuSections = [
       { href: "/settings/store", label: "Store Settings", sub: "Name, address, receipt & GST", icon: Store, color: "bg-orange-100 text-orange-700" },
       { href: "/settings/bill-settings", label: "Bill Settings", sub: "Paper size, footer, GST on receipt", icon: Receipt, color: "bg-rose-100 text-rose-700" },
       { href: "/settings/devices", label: "Device Center", sub: "Scanners, printers & connections", icon: Smartphone, color: "bg-cyan-100 text-cyan-700" },
+      { href: "/settings/export", label: "Backup & Export", sub: "Download data as CSV", icon: Download, color: "bg-indigo-100 text-indigo-700" },
+      { href: "/settings/sync-center", label: "Sync Center", sub: "Data sync status & force sync", icon: RefreshCw, color: "bg-teal-100 text-teal-700" },
     ]
   },
 ];

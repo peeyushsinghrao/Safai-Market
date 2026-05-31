@@ -36,9 +36,12 @@ import StoreSettings from "./pages/settings/store";
 import DevicesPage from "./pages/settings/devices";
 import BillSettings from "./pages/settings/bill-settings";
 import ProductVariants from "./pages/products/variants";
+import BarcodeLabelPage from "./pages/products/barcode-label";
 import BundlesList from "./pages/bundles/index";
 import BundleNew from "./pages/bundles/new";
 import BundleDetail from "./pages/bundles/detail";
+import ExportPage from "./pages/settings/export";
+import SyncCenter from "./pages/settings/sync-center";
 
 import Login from "./pages/auth/login";
 import Register from "./pages/auth/register";
@@ -74,6 +77,9 @@ const StoreSettingsPage = () => <Layout><StoreSettings /></Layout>;
 const BundlesListPage = () => <Layout><BundlesList /></Layout>;
 const BundleNewPage = () => <Layout><BundleNew /></Layout>;
 const BundleDetailPage = () => <Layout><BundleDetail /></Layout>;
+const BarcodeLabelRoute = () => <Layout><BarcodeLabelPage /></Layout>;
+const ExportPageRoute = () => <Layout><ExportPage /></Layout>;
+const SyncCenterRoute = () => <Layout><SyncCenter /></Layout>;
 const NotFoundPage = () => <Layout><NotFound /></Layout>;
 
 function Router() {
@@ -89,8 +95,10 @@ function Router() {
 
       <Route path="/products" component={ProductsListPage} />
       <Route path="/products/new" component={ProductNewPage} />
+      <Route path="/products/:id/barcode-label" component={BarcodeLabelRoute} />
       <Route path="/products/:id/edit" component={ProductEditPage} />
       <Route path="/products/:id" component={ProductDetailPage} />
+
 
       <Route path="/billing" component={BillingPage} />
 
@@ -125,6 +133,9 @@ function Router() {
       <Route path="/bundles" component={BundlesListPage} />
       <Route path="/bundles/new" component={BundleNewPage} />
       <Route path="/bundles/:id" component={BundleDetailPage} />
+
+      <Route path="/settings/export" component={ExportPageRoute} />
+      <Route path="/settings/sync-center" component={SyncCenterRoute} />
 
       <Route component={NotFoundPage} />
     </Switch>

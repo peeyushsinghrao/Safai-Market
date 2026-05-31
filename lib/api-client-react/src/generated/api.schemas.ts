@@ -140,6 +140,13 @@ export interface Product {
   isVariantParent?: boolean;
   /** @nullable */
   parentProductId?: number | null;
+  /** @nullable */
+  barcode?: string | null;
+  /** @nullable */
+  hsnCode?: string | null;
+  /** @nullable */
+  gstRate?: number | null;
+  gstInclusive?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
