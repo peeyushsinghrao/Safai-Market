@@ -1,0 +1,457 @@
+Safai Market
+
+Product Requirements Document (PRD)
+
+Product Name
+
+Safai Market
+
+Version
+
+2.0
+
+Product Type
+
+Multi-Shop Inventory, Billing, Customer & Store Management Platform
+
+Target Users
+
+- Kirana Shops
+- Grocery Stores
+- General Stores
+- Wholesale Stores
+- Retail Shops
+- Multi-Branch Businesses
+
+---
+
+Product Vision
+
+Build a production-ready store management platform that feels as simple as WhatsApp, PhonePe and Blinkit while providing enterprise-level inventory, billing, reporting and multi-shop capabilities.
+
+The application must be mobile-first but fully optimized for tablets and desktop systems.
+
+The system should allow shop owners to manage products, inventory, customers, bills, expenses, suppliers, devices and reports from a single platform.
+
+---
+
+Core Product Goals
+
+- Extremely simple UI
+- Fast billing workflow
+- Multi-shop architecture
+- Offline-first operation
+- Barcode-enabled inventory
+- GST-ready billing
+- Multi-device support
+- Future branch expansion support
+- Production-grade scalability
+
+---
+
+Core Modules
+
+Authentication
+
+Features:
+
+- Registration
+- Login
+- Password Reset
+- Session Persistence
+- Shop Creation
+- User Roles
+
+Roles:
+
+- Owner
+- Manager
+- Staff
+
+---
+
+Multi-Shop System
+
+Architecture:
+
+shop_id based isolation
+
+Every shop contains:
+
+- Products
+- Customers
+- Bills
+- Reports
+- Expenses
+- Suppliers
+- Orders
+- Settings
+
+Data from one shop must never mix with another.
+
+Future support:
+
+- Multiple branches
+- Multiple stores
+- Franchise expansion
+
+---
+
+Product Management
+
+Features:
+
+- Add Product
+- Edit Product
+- Delete Product
+- Quick Add Product
+- Bulk Product Entry
+- Product Images
+- Categories
+- Suppliers
+- Stock Tracking
+- Low Stock Detection
+
+Product Fields:
+
+- Name
+- Category
+- Barcode
+- Buy Price
+- Sell Price
+- Stock
+- Supplier
+- Image
+
+---
+
+Product Variants
+
+Support:
+
+- Pack
+- Loose
+- Weight Based
+- Size Based
+
+Examples:
+
+- 100g Atta
+- 500g Atta
+- 1kg Atta
+
+Multi-unit selling must be supported.
+
+---
+
+Barcode System
+
+Features:
+
+- Manual Barcode
+- Camera Scan
+- USB Scanner
+- Bluetooth Scanner
+- Barcode Generator
+- Barcode History
+
+Workflow:
+
+Scan
+→ Product Found
+→ Auto Add To Cart
+
+Unknown Barcode:
+
+Create Product
+Assign Product
+Cancel
+
+Barcode Label Printing:
+
+- Thermal Printer
+- ZPL Support
+
+---
+
+Inventory System
+
+Features:
+
+- Stock Tracking
+- Stock Movement History
+- Purchase Entry
+- Stock Adjustments
+- Low Stock Alerts
+
+---
+
+Billing System
+
+Highest Priority Module
+
+Features:
+
+- Unlimited Cart
+- Multi Product Billing
+- Fast Billing
+- Barcode Billing
+- Customer Billing
+- Bulk Billing
+
+Checkout:
+
+Cart
+→ Payment
+→ Review
+→ Create Bill
+
+After Bill Creation:
+
+Save Bill
+→ Deduct Stock
+→ Generate PDF
+→ Show Success Screen
+→ Reset Cart
+
+---
+
+Bulk Billing Optimization
+
+For large orders:
+
+Support:
+
+- Quantity Input
+- Keypad Entry
+- Direct Quantity Edit
+- Bulk Quantity Update
+
+Shopkeepers should not need to press + hundreds of times.
+
+Goal:
+
+100–200 products should be billable within 15–30 minutes.
+
+---
+
+GST Billing
+
+Support:
+
+- GST Number
+- GST Invoices
+- CGST
+- SGST
+- Tax Breakdown
+
+GST information comes from Store Settings.
+
+Only GST-enabled stores should show GST calculations.
+
+---
+
+Customer System
+
+Features:
+
+- Customer Profiles
+- Customer History
+- Purchase Analytics
+- Credit Tracking
+- Udhaar Management
+
+---
+
+Udhaar System
+
+Only show Udhaar sections when:
+
+- Customer has credit
+- Transaction uses Udhaar
+
+Do not display Udhaar on every bill.
+
+---
+
+Device Center
+
+Features:
+
+- Connect Printers
+- Connect Barcode Scanners
+- Connected Devices List
+- Device Health
+
+Support:
+
+- Bluetooth Devices
+- USB Devices
+
+---
+
+Bill Customization
+
+Settings:
+
+- Logo
+- Store Name
+- Address
+- Phone
+- GST
+- Footer
+- Paper Size
+
+---
+
+Reports
+
+Features:
+
+- Sales Reports
+- Profit Reports
+- Inventory Reports
+- Customer Reports
+
+Metrics:
+
+- Top Profit Products
+- Low Profit Products
+- Category Profit
+
+---
+
+Offline First
+
+Features:
+
+- IndexedDB
+- Local Cache
+- Sync Queue
+- Retry Logic
+
+Application must continue working during:
+
+- No Internet
+- Weak Internet
+
+---
+
+Animations
+
+Add:
+
+- Page Transitions
+- Success Animations
+- Billing Animations
+- Scan Animations
+- Loading Animations
+
+Animations should remain professional.
+
+---
+
+Sound Effects
+
+Optional Settings Toggle
+
+Events:
+
+- Barcode Scan
+- Bill Success
+- Printer Success
+- Sync Success
+
+---
+
+Platforms
+
+Mobile:
+
+- 360px
+- 375px
+- 390px
+- 412px
+- 430px
+
+Tablet:
+
+- 768px+
+
+Desktop:
+
+Dedicated desktop layouts.
+
+Examples:
+
+Billing:
+Products | Cart
+
+Customers:
+List | Details
+
+Reports:
+Sidebar | Content
+
+---
+
+Technology Stack
+
+Frontend:
+
+- React
+- TypeScript
+- TailwindCSS
+- Vite
+
+Backend:
+
+- Supabase
+
+Database:
+
+- PostgreSQL
+
+Authentication:
+
+- Supabase Auth
+
+Storage:
+
+- Supabase Storage
+
+Offline:
+
+- IndexedDB
+
+Barcode:
+
+- ZXing
+
+PDF:
+
+- jsPDF
+
+Charts:
+
+- Chart.js
+
+---
+
+Success Criteria
+
+The application should allow a shop owner to:
+
+- Create a shop
+- Add products quickly
+- Scan barcodes
+- Bill customers rapidly
+- Track inventory
+- Manage multiple stores
+- Work offline
+- Generate GST invoices
+- Print and share bills
+- Manage devices
+- Scale to multiple branches
+
+while keeping the user experience extremely simple and intuitive.
