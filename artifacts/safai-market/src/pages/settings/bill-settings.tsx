@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSettingsStore } from "@/stores/settings";
 import PageHeader from "@/components/page-header";
 import { FormCard, FormField } from "@/components/form-card";
-import { printReceipt } from "@/lib/receipt";
+import { buildReceiptHtml } from "@/lib/receipt";
 import { isSoundEnabled, setSoundEnabled } from "@/lib/sounds";
 
 export default function BillSettings() {
@@ -39,7 +39,7 @@ export default function BillSettings() {
     });
   }, []);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     updateSettings({
       paperSize: form.paperSize as "58mm" | "A4" | "A5",
@@ -51,12 +51,15 @@ export default function BillSettings() {
       soundsEnabled: soundOn,
       logoUrl: form.logoUrl.trim() || undefined,
     });
+    
+    await useSettingsStore.getState().persistToServer();
+    
     toast({ title: "Bill settings saved!" });
     setLocation("/more");
   };
 
-  const handlePreview = () => {
-    printReceipt({
+  const getPreviewHtml = () => {
+    return buildReceiptHtml({
       storeName: settings.storeName,
       storeAddress: settings.address,
       storePhone: settings.phone,
@@ -79,11 +82,12 @@ export default function BillSettings() {
       notes: "Sample preview",
       paperSize: form.paperSize as "58mm" | "A4" | "A5",
       showGst: form.showGst,
+      storeLogo: form.logoUrl || undefined,
     });
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-50/60">
+    <div className="flex flex-col min-h-full bg-slate-50 font-sans">
       <PageHeader title="Bill Settings" subtitle="Receipt format & display options" backTo="/more" />
 
       <form onSubmit={handleSave} className="flex-1 p-4 space-y-4 pb-24">
@@ -97,14 +101,14 @@ export default function BillSettings() {
                 value={form.logoUrl}
                 onChange={(e) => setForm(p => ({ ...p, logoUrl: e.target.value }))}
                 placeholder="https://example.com/logo.png (optional)"
-                className="w-full h-12 pl-10 pr-4 rounded-xl border border-muted bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full h-14 pl-10 pr-4 rounded-2xl border border-slate-300 bg-white text-[15px] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
             {form.logoUrl && (
               <img
                 src={form.logoUrl}
                 alt="Logo preview"
-                className="h-14 w-auto mt-2 rounded object-contain border border-muted/50 p-1"
+                className="h-14 w-auto mt-2 rounded-xl object-contain border border-slate-200 p-1 bg-white"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
             )}
@@ -114,7 +118,7 @@ export default function BillSettings() {
         <FormCard title="Paper & Format">
           <FormField label="Paper Size">
             <Select value={form.paperSize} onValueChange={(v) => setForm(p => ({ ...p, paperSize: v as any }))}>
-              <SelectTrigger className="h-12 rounded-xl">
+              <SelectTrigger className="h-14 rounded-2xl text-[15px] border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -135,7 +139,7 @@ export default function BillSettings() {
                 value={form.footerMessage}
                 onChange={(e) => setForm(p => ({ ...p, footerMessage: e.target.value }))}
                 placeholder="e.g. Thank you for shopping! Come again."
-                className="min-h-[72px] pl-10 rounded-xl border-muted focus:border-primary text-base resize-none"
+                className="min-h-[72px] pl-10 pt-3 rounded-2xl border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent text-[15px] resize-none transition-all"
               />
             </div>
             <p className="text-xs text-muted-foreground">Printed at the bottom of every receipt.</p>
@@ -160,10 +164,10 @@ export default function BillSettings() {
               sub: "Show profit estimate at bottom of receipt (owner only)",
             },
           ].map(item => (
-            <div key={item.key} className="flex items-center justify-between rounded-xl border border-muted/50 bg-background px-4 py-3">
+            <div key={item.key} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
               <div>
-                <p className="text-sm font-medium">{item.label}</p>
-                <p className="text-xs text-muted-foreground">{item.sub}</p>
+                <p className="text-[14px] font-bold text-slate-800">{item.label}</p>
+                <p className="text-[12px] font-medium text-slate-500 mt-0.5">{item.sub}</p>
               </div>
               <Switch
                 checked={form[item.key]}
@@ -174,12 +178,12 @@ export default function BillSettings() {
         </FormCard>
 
         <FormCard title="App Experience">
-          <div className="flex items-center justify-between rounded-xl border border-muted/50 bg-background px-4 py-3">
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <div className="flex items-center gap-3">
-              {soundOn ? <Volume2 className="w-4 h-4 text-primary" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
+              {soundOn ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5 text-slate-400" />}
               <div>
-                <p className="text-sm font-medium">Sound Effects</p>
-                <p className="text-xs text-muted-foreground">Beeps on scan, cart add, bill success</p>
+                <p className="text-[14px] font-bold text-slate-800">Sound Effects</p>
+                <p className="text-[12px] font-medium text-slate-500 mt-0.5">Beeps on scan, cart add, bill success</p>
               </div>
             </div>
             <Switch
@@ -192,12 +196,12 @@ export default function BillSettings() {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-muted/50 bg-background px-4 py-3">
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm mt-2">
             <div className="flex items-center gap-3">
-              <Sparkles className="w-4 h-4 text-primary" />
+              <Sparkles className="w-5 h-5 text-primary" />
               <div>
-                <p className="text-sm font-medium">Animations</p>
-                <p className="text-xs text-muted-foreground">Page transitions and button feedback</p>
+                <p className="text-[14px] font-bold text-slate-800">Animations</p>
+                <p className="text-[12px] font-medium text-slate-500 mt-0.5">Page transitions and button feedback</p>
               </div>
             </div>
             <Switch
@@ -210,19 +214,21 @@ export default function BillSettings() {
           </div>
         </FormCard>
 
+        <FormCard title="Live Preview">
+          <div className="flex justify-center bg-gray-100 p-4 rounded-xl border border-muted/50 overflow-hidden">
+            <iframe 
+              srcDoc={getPreviewHtml()} 
+              className="bg-white shadow-sm border rounded"
+              style={{ width: "58mm", height: "400px" }}
+              title="Receipt Preview"
+            />
+          </div>
+        </FormCard>
+
         <div className="space-y-3">
           <Button
-            type="button"
-            variant="outline"
-            className="w-full h-12 rounded-xl font-semibold gap-2"
-            onClick={handlePreview}
-          >
-            <Eye className="w-4 h-4" />
-            Preview Receipt
-          </Button>
-          <Button
             type="submit"
-            className="w-full h-14 text-base font-bold rounded-2xl shadow-lg shadow-primary/20"
+            className="w-full h-14 text-[16px] font-bold rounded-2xl shadow-sm bg-primary hover:bg-primary/90 text-white active-elevate transition-transform mt-2"
           >
             Save Bill Settings
           </Button>

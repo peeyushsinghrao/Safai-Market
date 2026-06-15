@@ -13,6 +13,7 @@ export interface BundleData {
   id: number;
   name: string;
   description: string | null;
+  barcode: string | null;
   sellPrice: string;
   buyPriceComputed: string;
   isActive: boolean;
@@ -55,6 +56,7 @@ export function useCreateBundle() {
     mutationFn: (data: {
       name: string;
       description?: string;
+      barcode?: string;
       sellPrice: number;
       items: Array<{ productId: number; quantity: number }>;
     }) => apiFetch("/api/bundles", {
@@ -73,6 +75,7 @@ export function useUpdateBundle(id: number) {
     mutationFn: (data: {
       name?: string;
       description?: string;
+      barcode?: string;
       sellPrice?: number;
       isActive?: boolean;
       items?: Array<{ productId: number; quantity: number }>;

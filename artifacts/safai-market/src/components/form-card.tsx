@@ -9,11 +9,13 @@ interface FormCardProps {
 
 export function FormCard({ children, title, className }: FormCardProps) {
   return (
-    <div className={cn("bg-card rounded-2xl border border-muted/60 shadow-sm p-5 space-y-4", className)}>
+    <div className={cn("space-y-3", className)}>
       {title && (
-        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">{title}</p>
+        <p className="text-[14px] font-semibold text-slate-800 px-1">{title}</p>
       )}
-      {children}
+      <div className="bg-white rounded-[16px] border border-slate-200 shadow-sm p-4 space-y-4">
+        {children}
+      </div>
     </div>
   );
 }
@@ -28,10 +30,12 @@ interface FormFieldProps {
 export function FormField({ label, required, hint, children }: FormFieldProps) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-baseline gap-1">
-        <label className="text-sm font-semibold text-foreground/80">{label}</label>
-        {required && <span className="text-destructive text-xs font-bold">*</span>}
-        {hint && <span className="text-xs text-muted-foreground ml-auto">{hint}</span>}
+      <div className="flex items-baseline justify-between">
+        <label className="text-[13px] font-semibold text-slate-800 flex items-center gap-1">
+          {label}
+          {required && <span className="text-red-500 text-[12px]">*</span>}
+        </label>
+        {hint && <span className="text-[12px] text-slate-500">{hint}</span>}
       </div>
       {children}
     </div>

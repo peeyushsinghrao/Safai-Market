@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
@@ -6,6 +6,7 @@ import { useCartStore } from "@/stores/cart";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setSession, setShop, isLoading } = useAuthStore();
+  const loadingShopRef = useRef(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -34,6 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loadShop = async (token: string) => {
+    // Prevent concurrent duplicate calls that cause infinite request loops
+    if (loadingShopRef.current) return;
+    loadingShopRef.current = true;
     try {
       const res = await fetch("/api/shops/my", {
         headers: { Authorization: `Bearer ${token}` },
@@ -44,11 +48,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // FIX BUG-013: Sync server shop data into settings so storeName/gstNumber
         // survive device switching
         useSettingsStore.getState().syncFromShop(shop);
+      } else if (res.status === 401) {
+        // Token is stale/invalid — sign out to clear the bad session
+        // and prevent infinite loops
+        console.warn("Auth token rejected (401) — signing out stale session");
+        await getSupabase().auth.signOut();
       } else {
+        // 404 = no shop yet (new user), which is fine
         setShop(null);
       }
     } catch {
       setShop(null);
+    } finally {
+      loadingShopRef.current = false;
     }
   };
 

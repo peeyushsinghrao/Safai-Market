@@ -22,9 +22,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (session && isPublic) {
       if (!shop) {
-        setLocation("/auth/onboarding");
+        if (location !== "/auth/onboarding") {
+          setLocation("/auth/onboarding");
+        }
       } else {
-        setLocation("/");
+        if (location !== "/") {
+          setLocation("/");
+        }
       }
       return;
     }

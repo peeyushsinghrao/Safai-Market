@@ -1,22 +1,18 @@
 import React, { useState, lazy, Suspense } from "react";
 import { Link, useLocation } from "wouter";
 import { useListProducts, useListCategories } from "@workspace/api-client-react";
-import { Plus, Search, AlertTriangle, Camera } from "lucide-react";
+import { Plus, Search, Camera, ShoppingCart } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import { computeMargin, MARGIN_TIER_CONFIG } from "@/lib/profit";
+import { computeMargin } from "@/lib/profit";
 
 const BarcodeScannerModal = lazy(() => import("@/components/barcode-scanner-modal"));
 
 export default function ProductsList() {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | undefined>();
-  const [sortBy, setSortBy] = useState<"name" | "stock" | "margin">("name");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [, setLocation] = useLocation();
 
@@ -25,19 +21,6 @@ export default function ProductsList() {
     search: search.length >= 2 ? search : undefined,
     categoryId,
   });
-
-  const sortedProducts = React.useMemo(() => {
-    if (!products) return [];
-    return [...products].sort((a, b) => {
-      if (sortBy === "stock") return a.currentStock - b.currentStock;
-      if (sortBy === "margin") {
-        const ma = computeMargin(a.buyPrice, a.sellPrice);
-        const mb = computeMargin(b.buyPrice, b.sellPrice);
-        return (mb?.marginPct ?? -999) - (ma?.marginPct ?? -999);
-      }
-      return a.name.localeCompare(b.name);
-    });
-  }, [products, sortBy]);
 
   const handleBarcodeDetected = (barcode: string) => {
     setScannerOpen(false);
@@ -49,160 +32,139 @@ export default function ProductsList() {
     }
   };
 
+  // Mock images based on name keywords for beautiful UI matching the design
+  const getProductImage = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes('lizol') || n.includes('clean')) return 'https://images.unsplash.com/photo-1584820927498-cafe4c12659e?auto=format&fit=crop&q=80&w=200&h=200';
+    if (n.includes('milk') || n.includes('amul')) return 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=200&h=200';
+    if (n.includes('vim') || n.includes('gel') || n.includes('liquid')) return 'https://images.unsplash.com/photo-1606168094056-bb98fdb5148b?auto=format&fit=crop&q=80&w=200&h=200';
+    if (n.includes('roll') || n.includes('paper') || n.includes('selpak')) return 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&q=80&w=200&h=200';
+    // default generic
+    return 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?auto=format&fit=crop&q=80&w=200&h=200';
+  };
+
   return (
-    <div className="flex flex-col h-full bg-gray-50/50">
-      <div className="sticky top-14 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 space-y-3">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input 
-              className="pl-10 h-12 bg-background border-muted shadow-sm text-base rounded-xl"
-              placeholder="Search products, brands, aliases..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+    <div className="flex flex-col h-full bg-[#f8fafc] font-sans pb-24">
+      {/* Search & Categories Sticky Header */}
+      <div className="sticky top-14 z-30 bg-[#f8fafc] border-b border-slate-200 px-4 py-3 space-y-4 shadow-sm">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-500" />
+          <Input 
+            className="pl-11 pr-12 h-[48px] bg-white border border-slate-300 shadow-sm text-[15px] rounded-2xl focus:border-[#006b2c] focus:ring-1 focus:ring-[#006b2c]"
+            placeholder="Search products..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
           <button
-            className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary active:bg-primary/20 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-[#006b2c] hover:bg-green-50 transition-colors"
             onClick={() => setScannerOpen(true)}
-            title="Scan barcode to find product"
           >
-            <Camera className="w-5 h-5" />
+            <Camera className="w-[20px] h-[20px]" />
           </button>
         </div>
         
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <Badge 
-            variant={categoryId === undefined ? "default" : "outline"} 
-            className="rounded-full px-4 py-1.5 whitespace-nowrap cursor-pointer text-sm font-medium"
+        {/* Categories Pill Nav */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar -mx-4 px-4">
+          <button
             onClick={() => setCategoryId(undefined)}
+            className={cn(
+              "whitespace-nowrap px-5 py-[7px] rounded-full text-[13px] font-medium border transition-colors",
+              categoryId === undefined 
+                ? "bg-[#006b2c] text-white border-[#006b2c]" 
+                : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"
+            )}
           >
-            All Items
-          </Badge>
+            All
+          </button>
           {categories?.map(cat => (
-            <Badge 
+            <button
               key={cat.id}
-              variant={categoryId === cat.id ? "default" : "outline"} 
-              className="rounded-full px-4 py-1.5 whitespace-nowrap cursor-pointer text-sm font-medium bg-background"
               onClick={() => setCategoryId(cat.id)}
+              className={cn(
+                "whitespace-nowrap px-5 py-[7px] rounded-full text-[13px] font-medium border transition-colors",
+                categoryId === cat.id 
+                  ? "bg-[#006b2c] text-white border-[#006b2c]" 
+                  : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"
+              )}
             >
               {cat.name}
-            </Badge>
+            </button>
           ))}
         </div>
       </div>
 
+      {/* Product List */}
       <div className="flex-1 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            {products?.length || 0} Products
-          </h2>
-          <div className="flex items-center gap-1">
-            <Button
-              variant={sortBy === "name" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 text-xs px-2"
-              onClick={() => setSortBy("name")}
-            >
-              A–Z
-            </Button>
-            <Button
-              variant={sortBy === "stock" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 text-xs px-2"
-              onClick={() => setSortBy("stock")}
-            >
-              Stock
-            </Button>
-            <Button
-              variant={sortBy === "margin" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 text-xs px-2"
-              onClick={() => setSortBy("margin")}
-            >
-              Margin
-            </Button>
-          </div>
-        </div>
-
         {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full rounded-xl" />
+          <div className="space-y-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-[140px] w-full rounded-2xl bg-white border border-slate-200" />
             ))}
           </div>
         ) : products?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-              <Search className="w-8 h-8 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+              <Search className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-medium">No products found</h3>
-            <p className="text-muted-foreground text-sm mt-1">Try a different search term or category.</p>
+            <h3 className="text-[17px] font-semibold text-slate-800">No products found</h3>
+            <p className="text-slate-500 text-[14px] mt-1">Try searching for something else.</p>
           </div>
         ) : (
-          <div className="space-y-3 pb-20">
-            {sortedProducts.map(product => {
+          <div className="space-y-4">
+            {products?.map(product => {
               const margin = computeMargin(product.buyPrice, product.sellPrice);
-              const tierCfg = margin ? MARGIN_TIER_CONFIG[margin.tier] : null;
+              const marginValue = margin ? Math.round(margin.marginPct) : 0;
+              const isLowStock = product.currentStock <= (product.lowStockLimit || 5);
+              const isMarginLow = marginValue < 15;
 
               return (
                 <Link key={product.id} href={`/products/${product.id}`}>
-                  <Card className="active-elevate border-muted/60 shadow-sm overflow-hidden hover:border-primary/30 transition-colors">
-                    <CardContent className="p-0 flex">
-                      <div className={cn(
-                        "w-1.5 shrink-0",
-                        product.currentStock <= 0 ? "bg-destructive" :
-                        product.currentStock <= (product.lowStockLimit || 5) ? "bg-amber-500" : "bg-primary"
-                      )} />
-                      <div className="p-4 flex-1 flex flex-col gap-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-bold text-gray-900 leading-tight">{product.name}</h3>
-                            {product.brand && <p className="text-xs text-muted-foreground">{product.brand}</p>}
-                          </div>
-                          <div className="text-right">
-                            <span className="font-bold text-primary">{formatCurrency(product.sellPrice)}</span>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sell Price</p>
-                          </div>
+                  <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm flex gap-4 transition-all active-elevate cursor-pointer relative overflow-hidden">
+                    {/* Image Area */}
+                    <div className="w-[100px] h-[100px] shrink-0 rounded-2xl overflow-hidden relative bg-slate-100 border border-slate-100">
+                      <img src={getProductImage(product.name)} alt={product.name} className="w-full h-full object-cover mix-blend-multiply" />
+                      {isLowStock && (
+                        <div className="absolute top-[50%] -translate-y-1/2 left-0 w-full bg-[#c53030] text-white text-[9px] font-bold py-1 px-1 text-center shadow-sm">
+                          LOW STOCK
                         </div>
-                        
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-muted/40">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="secondary" className="font-mono text-xs px-2 py-0.5 rounded">
-                              {product.currentStock} {product.unit}
-                            </Badge>
-                            {product.currentStock <= (product.lowStockLimit || 5) && product.currentStock > 0 && (
-                              <span className="flex items-center text-[10px] font-medium text-amber-600 gap-1 bg-amber-50 px-1.5 py-0.5 rounded">
-                                <AlertTriangle className="w-3 h-3" />
-                                Low
-                              </span>
-                            )}
-                            {product.currentStock <= 0 && (
-                              <span className="text-[10px] font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">
-                                Out
-                              </span>
-                            )}
-                            {tierCfg && margin && (
-                              <span className={cn(
-                                "text-[10px] font-semibold px-1.5 py-0.5 rounded border",
-                                tierCfg.badgeClass
-                              )}>
-                                {margin.marginPct.toFixed(0)}% · +{formatCurrency(margin.profitPerUnit)}
-                              </span>
-                            )}
-                            {!margin && (
-                              <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
-                                No cost
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[10px] font-medium bg-muted/50 px-2 py-1 rounded-md text-muted-foreground shrink-0">
-                            {product.categoryName}
-                          </span>
+                      )}
+                    </div>
+
+                    {/* Content Area */}
+                    <div className="flex-1 flex flex-col justify-between py-0.5">
+                      <div>
+                        <div className="flex justify-between items-start mb-0.5">
+                          <span className="text-[12px] text-slate-500 font-medium">{product.categoryName || "General"}</span>
+                          {marginValue > 0 && (
+                            <span className={cn(
+                              "text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ml-2",
+                              isMarginLow ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"
+                            )}>
+                              {marginValue}% Margin
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-bold text-[15px] text-slate-900 leading-tight mb-1">{product.name}</h3>
+                        <div className="font-bold text-[18px] text-[#006b2c]">
+                          {formatCurrency(product.sellPrice)}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+
+                      <div className="flex items-end justify-between mt-1">
+                        <span className={cn(
+                          "text-[13px] font-medium",
+                          isLowStock ? "text-[#c53030]" : "text-slate-600"
+                        )}>
+                          Stock: {product.currentStock} {product.unit}s
+                        </span>
+                        
+                        <button className="w-9 h-9 bg-[#006b2c] hover:bg-[#005a24] text-white rounded-[10px] flex items-center justify-center shadow-sm transition-colors">
+                          <ShoppingCart className="w-[18px] h-[18px]" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </Link>
               );
             })}
@@ -210,11 +172,12 @@ export default function ProductsList() {
         )}
       </div>
 
+      {/* FAB - Add Product */}
       <div className="fixed bottom-20 right-4 z-40">
         <Link href="/products/new">
-          <Button size="icon" className="w-14 h-14 rounded-full shadow-lg shadow-primary/30 active-elevate">
-            <Plus className="w-6 h-6" />
-          </Button>
+          <button className="w-14 h-14 bg-[#006b2c] text-white rounded-full shadow-lg shadow-[#006b2c]/30 flex items-center justify-center transition-all active-elevate">
+            <Plus className="w-[28px] h-[28px]" strokeWidth={2.5} />
+          </button>
         </Link>
       </div>
 

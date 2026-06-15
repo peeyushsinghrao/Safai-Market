@@ -79,6 +79,19 @@ export const useSettingsStore = create<SettingsStore>()(
               gstNumber: settings.gstNumber || null,
             }),
           });
+          
+          if (settings.logoUrl) {
+            await fetch("/api/settings/logo", {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                storeLogo: settings.logoUrl,
+              }),
+            });
+          }
         } catch {
           // Fail silently — settings still saved in localStorage
         }

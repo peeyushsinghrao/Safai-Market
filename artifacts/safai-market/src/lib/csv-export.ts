@@ -77,3 +77,23 @@ export function exportCustomersCSV(customers: any[]) {
   const date = new Date().toISOString().slice(0, 10);
   downloadCSV(`customers-${date}.csv`, buildCSV(headers, rows));
 }
+
+export function exportPurchasesCSV(purchases: any[]) {
+  const headers = [
+    "Purchase No", "Date", "Supplier", "Invoice Ref", "Items",
+    "Total Amount", "Paid Amount", "Payment Status", "Notes"
+  ];
+  const rows = purchases.map(p => [
+    p.purchaseNumber,
+    p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-IN") : "",
+    p.supplierName ?? "",
+    p.invoiceRef ?? "",
+    p.itemCount ?? p.items?.length ?? "",
+    p.totalAmount ?? "",
+    p.paidAmount ?? "",
+    p.paymentStatus ?? "",
+    p.notes ?? ""
+  ]);
+  const date = new Date().toISOString().slice(0, 10);
+  downloadCSV(`purchases-${date}.csv`, buildCSV(headers, rows));
+}

@@ -1,232 +1,132 @@
 import { useState } from "react";
-import { useParams, useLocation } from "wouter";
-import { useGetProduct, useListProducts, useCreateProduct } from "@workspace/api-client-react";
-import { Plus, Trash2, Package } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { useLocation, useParams } from "wouter";
+import { ArrowLeft, QrCode, Trash2, Plus, Scale } from "lucide-react";
+import { useGetProduct } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/format";
-import PageHeader from "@/components/page-header";
-import { FormCard, FormField } from "@/components/form-card";
-import { Skeleton } from "@/components/ui/skeleton";
-
-const QUICK_SIZES = ["100g", "250g", "500g", "1kg", "2kg", "5kg", "100ml", "200ml", "500ml", "1L", "2L", "Small", "Medium", "Large"];
-
-interface VariantDraft {
-  name: string;
-  sellPrice: string;
-  buyPrice: string;
-  stock: string;
-  barcode: string;
-}
-
-function emptyVariant(parentName: string, size: string = ""): VariantDraft {
-  return { name: size ? `${parentName} ${size}` : "", sellPrice: "", buyPrice: "", stock: "0", barcode: "" };
-}
+import { cn } from "@/lib/utils";
 
 export default function ProductVariants() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const { data: parent, isLoading } = useGetProduct(Number(id));
-  const createProduct = useCreateProduct();
+  const { data: product } = useGetProduct(Number(id));
 
-  const { data: allProducts } = useListProducts({ status: "active" } as any);
-  const existingVariants = (allProducts ?? []).filter(
-    (p: any) => String(p.parentProductId) === id
-  );
-
-  const [drafts, setDrafts] = useState<VariantDraft[]>([
-    emptyVariant(parent?.name ?? ""),
+  // Mock variants for the UI as per design
+  const [variants, setVariants] = useState([
+    { id: 1, name: "1 kg Pack", price: 120.00, stock: 45, isLowStock: false },
+    { id: 2, name: "5 kg Bag", price: 550.00, stock: 8, isLowStock: true },
+    { id: 3, name: "25 kg Sack", price: 2400.00, stock: 12, isLowStock: false },
   ]);
-  const [saving, setSaving] = useState(false);
 
-  const addDraft = () => setDrafts(prev => [...prev, emptyVariant(parent?.name ?? "")]);
-  const removeDraft = (idx: number) => setDrafts(prev => prev.filter((_, i) => i !== idx));
-  const updateDraft = (idx: number, field: keyof VariantDraft, value: string) => {
-    setDrafts(prev => prev.map((d, i) => i === idx ? { ...d, [field]: value } : d));
+  const handleDelete = (varId: number) => {
+    setVariants(prev => prev.filter(v => v.id !== varId));
   };
 
-  const handleQuickSize = (idx: number, size: string) => {
-    const base = parent?.name ?? "";
-    setDrafts(prev => prev.map((d, i) =>
-      i === idx ? { ...d, name: `${base} ${size}` } : d
-    ));
+  const getProductImage = (name: string = "") => {
+    return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=800&h=800'; // Rice image as default for mockup
   };
-
-  const handleSave = async () => {
-    const valid = drafts.filter(d => d.name.trim() && d.sellPrice);
-    if (valid.length === 0) {
-      toast({ title: "Add at least one variant with name and price", variant: "destructive" });
-      return;
-    }
-    setSaving(true);
-    let saved = 0;
-    for (const draft of valid) {
-      try {
-        await createProduct.mutateAsync({
-          data: {
-            name: draft.name.trim(),
-            categoryId: parent?.categoryId ?? 1,
-            unit: parent?.unit ?? "piece",
-            sellPrice: Number(draft.sellPrice),
-            buyPrice: draft.buyPrice ? Number(draft.buyPrice) : 0,
-            initialStock: Number(draft.stock) || 0,
-            barcode: draft.barcode || undefined,
-            parentProductId: Number(id),
-            isVariantParent: false,
-          } as any,
-        });
-        saved++;
-      } catch (err: any) {
-        toast({ title: `Failed to save "${draft.name}"`, description: err.message, variant: "destructive" });
-      }
-    }
-    setSaving(false);
-    if (saved > 0) {
-      toast({ title: `${saved} variant${saved > 1 ? "s" : ""} created!` });
-      setLocation(`/products/${id}`);
-    }
-  };
-
-  if (isLoading) return (
-    <div className="p-4 space-y-3">
-      <Skeleton className="h-14 w-full rounded-xl" />
-      <Skeleton className="h-40 w-full rounded-xl" />
-    </div>
-  );
-
-  if (!parent) return <div className="p-6 text-center text-muted-foreground">Product not found.</div>;
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-50/60">
-      <PageHeader title="Manage Variants" subtitle={parent.name} backTo={`/products/${id}`} />
+    <div className="flex flex-col min-h-full bg-[#f8fafc] font-sans pb-28">
+      {/* Header */}
+      <div className="sticky top-0 z-30 bg-[#f8fafc] px-4 py-4 flex items-center justify-between shadow-sm border-b border-slate-200">
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => setLocation(`/products/${id}`)} className="text-[#006b2c] p-1 -ml-1">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-[19px] font-bold text-[#006b2c]">
+            Variants
+          </h1>
+        </div>
+        <button type="button" className="text-[#006b2c]">
+          <QrCode className="w-6 h-6" />
+        </button>
+      </div>
 
-      <div className="p-4 space-y-4 pb-24">
+      <div className="p-4 space-y-5">
+        {/* Top Product Summary Card */}
+        <div className="bg-white border border-slate-200 rounded-[16px] p-4 shadow-sm flex gap-4 items-center">
+          <div className="w-16 h-16 rounded-[12px] bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
+            <img src={getProductImage(product?.name)} alt="Product" className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h2 className="text-[17px] font-bold text-slate-900">{product?.name || "Premium Basmati Rice"}</h2>
+            <p className="text-[14px] text-slate-600">Manage size and weight options</p>
+          </div>
+        </div>
 
-        {existingVariants.length > 0 && (
-          <FormCard title={`Existing Variants (${existingVariants.length})`}>
-            <div className="space-y-2">
-              {existingVariants.map((v: any) => (
-                <div key={v.id} className="flex items-center justify-between bg-background rounded-xl border border-muted/50 px-4 py-3">
-                  <div>
-                    <p className="text-sm font-semibold">{v.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Stock: {Number(v.currentStock)} · {formatCurrency(Number(v.sellPrice))}
-                    </p>
+        {/* Variants List Section */}
+        <div>
+          <div className="flex justify-between items-center mb-3 px-1">
+            <h3 className="text-[14px] font-bold text-slate-700 tracking-wide uppercase">Active Variants</h3>
+            <span className="bg-[#4ade80] text-[#064e3b] text-[12px] font-bold px-2.5 py-1 rounded-full">
+              {variants.length} Options
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {variants.map(variant => (
+              <div key={variant.id} className="bg-white border border-slate-200 rounded-[16px] p-4 shadow-sm space-y-3">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2 text-[#006b2c]">
+                    <Scale className="w-5 h-5" />
+                    <span className="text-[17px] font-bold text-slate-900">{variant.name}</span>
                   </div>
-                  <button onClick={() => setLocation(`/products/${v.id}/edit`)} className="text-primary text-xs font-semibold">
-                    Edit
+                  <button 
+                    onClick={() => handleDelete(variant.id)}
+                    className="text-slate-500 hover:text-red-500 transition-colors p-1"
+                  >
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
-              ))}
-            </div>
-          </FormCard>
-        )}
-
-        <FormCard title="Add New Variants">
-          <p className="text-xs text-muted-foreground -mt-1 mb-2">
-            Example: Harpic 500ml, Harpic 1L, Harpic 200ml — each tracked separately.
-          </p>
-
-          {drafts.map((draft, idx) => (
-            <div key={idx} className="border border-muted/60 rounded-xl p-3 space-y-3 bg-background relative">
-              {drafts.length > 1 && (
-                <button
-                  onClick={() => removeDraft(idx)}
-                  className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-
-              <div className="flex flex-wrap gap-1.5">
-                {QUICK_SIZES.slice(0, 8).map(size => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => handleQuickSize(idx, size)}
-                    className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-muted/60 text-muted-foreground border border-muted/80 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-
-              <FormField label={`Variant ${idx + 1} Name`} required>
-                <Input
-                  value={draft.name}
-                  onChange={e => updateDraft(idx, "name", e.target.value)}
-                  placeholder={`e.g. ${parent.name} 500ml`}
-                  className="h-11 rounded-xl text-sm border-muted"
-                />
-              </FormField>
-
-              <div className="grid grid-cols-2 gap-2">
-                <FormField label="Sell Price (₹)" required>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₹</span>
-                    <Input
-                      type="number"
-                      value={draft.sellPrice}
-                      onChange={e => updateDraft(idx, "sellPrice", e.target.value)}
-                      placeholder="0"
-                      className="h-11 pl-6 rounded-xl text-sm border-muted"
-                    />
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-[#f8fafc] rounded-[10px] p-2.5">
+                    <p className="text-[13px] text-slate-600 mb-0.5">Price</p>
+                    <p className="text-[18px] font-bold text-[#006b2c]">₹{variant.price.toFixed(2)}</p>
                   </div>
-                </FormField>
-                <FormField label="Buy Price (₹)">
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₹</span>
-                    <Input
-                      type="number"
-                      value={draft.buyPrice}
-                      onChange={e => updateDraft(idx, "buyPrice", e.target.value)}
-                      placeholder="0"
-                      className="h-11 pl-6 rounded-xl text-sm border-muted"
-                    />
+                  <div className="bg-[#f8fafc] rounded-[10px] p-2.5 flex flex-col justify-center">
+                    <p className="text-[13px] text-slate-600 mb-0.5">Stock</p>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "text-[18px] font-bold",
+                        variant.isLowStock ? "text-red-600" : "text-slate-900"
+                      )}>{variant.stock}</span>
+                      {variant.isLowStock ? (
+                        <span className="bg-red-100 text-red-700 text-[11px] font-bold px-2 py-0.5 rounded-[4px]">Low Stock</span>
+                      ) : (
+                        <span className="bg-blue-100 text-blue-700 text-[11px] font-bold px-2 py-0.5 rounded-[4px]">Units</span>
+                      )}
+                    </div>
                   </div>
-                </FormField>
+                </div>
               </div>
+            ))}
+          </div>
+        </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <FormField label="Opening Stock">
-                  <Input
-                    type="number"
-                    value={draft.stock}
-                    onChange={e => updateDraft(idx, "stock", e.target.value)}
-                    className="h-11 rounded-xl text-sm border-muted"
-                  />
-                </FormField>
-                <FormField label="Barcode" hint="Optional">
-                  <Input
-                    value={draft.barcode}
-                    onChange={e => updateDraft(idx, "barcode", e.target.value)}
-                    placeholder="Scan or type"
-                    className="h-11 rounded-xl text-sm border-muted font-mono"
-                  />
-                </FormField>
-              </div>
-            </div>
-          ))}
+        {/* Add New Variant Button */}
+        <button className="w-full h-[56px] border-2 border-dashed border-[#006b2c]/40 hover:border-[#006b2c]/80 hover:bg-[#006b2c]/5 rounded-[16px] flex items-center justify-center gap-2 text-[#006b2c] font-bold text-[15px] transition-all">
+          <Plus className="w-5 h-5" />
+          Add New Variant
+        </button>
+      </div>
 
-          <button
-            type="button"
-            onClick={addDraft}
-            className="w-full flex items-center justify-center gap-2 h-11 rounded-xl border-2 border-dashed border-primary/30 text-primary text-sm font-semibold hover:bg-primary/5 transition-colors"
+      {/* Floating Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#f8fafc] z-40 border-t border-slate-200">
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setLocation(`/products/${id}`)}
+            className="w-1/3 h-[52px] bg-white border border-slate-300 text-slate-700 rounded-[12px] font-bold text-[15px] flex items-center justify-center hover:bg-slate-50 transition-colors"
           >
-            <Plus className="w-4 h-4" />
-            Add Another Variant
+            Discard
           </button>
-        </FormCard>
-
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full h-14 text-base font-bold rounded-2xl shadow-lg shadow-primary/20"
-        >
-          {saving ? "Saving..." : `Save ${drafts.filter(d => d.name && d.sellPrice).length} Variant${drafts.filter(d => d.name && d.sellPrice).length !== 1 ? "s" : ""}`}
-        </Button>
+          <button 
+            className="flex-1 h-[52px] bg-[#006b2c] hover:bg-[#005a24] text-white rounded-[12px] font-bold text-[15px] flex items-center justify-center gap-2 transition-colors active:scale-[0.99] shadow-sm"
+          >
+            <Save className="w-5 h-5" />
+            Save Changes
+          </button>
+        </div>
       </div>
     </div>
   );

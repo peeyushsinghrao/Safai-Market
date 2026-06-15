@@ -69,7 +69,7 @@ export default function ExpenseNew() {
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-50/60">
+    <div className="flex flex-col min-h-full bg-slate-50 font-sans">
       <PageHeader title="Add Expense" subtitle="Record a business expense" backTo="/expenses" />
 
       <form onSubmit={handleSubmit} className="flex-1 p-4 space-y-4 pb-24">
@@ -84,7 +84,7 @@ export default function ExpenseNew() {
                 placeholder="e.g. Electricity bill payment"
                 required
                 autoFocus
-                className="h-12 pl-10 rounded-xl text-base border-muted focus:border-primary"
+                className="h-14 pl-10 rounded-2xl text-[15px] border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
           </FormField>
@@ -100,7 +100,7 @@ export default function ExpenseNew() {
                 placeholder="0"
                 min="1"
                 required
-                className="h-14 pl-8 rounded-xl text-xl font-bold border-muted focus:border-primary"
+                className="h-14 pl-8 rounded-2xl text-xl font-bold border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
           </FormField>
@@ -114,10 +114,10 @@ export default function ExpenseNew() {
                 type="button"
                 onClick={() => setFormData(p => ({ ...p, category: cat.value }))}
                 className={cn(
-                  "flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all text-sm font-medium",
+                  "flex items-center gap-2.5 p-3 rounded-2xl border text-left transition-all text-[14px] font-bold",
                   formData.category === cat.value
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-muted bg-background text-muted-foreground hover:border-primary/40"
+                    ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
+                    : "border-slate-200 bg-white text-slate-500 hover:border-primary/40 active-elevate"
                 )}
               >
                 <span className="text-lg">{cat.emoji}</span>
@@ -139,7 +139,7 @@ export default function ExpenseNew() {
                 value={formData.notes}
                 onChange={handleChange}
                 placeholder="e.g. Paid by cash to landlord"
-                className="h-12 pl-10 rounded-xl text-base border-muted focus:border-primary"
+                className="h-14 pl-10 rounded-2xl text-[15px] border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
           </FormField>
@@ -147,7 +147,7 @@ export default function ExpenseNew() {
 
         <Button
           type="submit"
-          className="w-full h-14 text-base font-bold rounded-2xl shadow-lg shadow-destructive/20 bg-destructive hover:bg-destructive/90 active-elevate mt-2"
+          className="w-full h-14 text-[16px] font-bold rounded-2xl shadow-sm bg-red-600 hover:bg-red-700 text-white active-elevate mt-2 transition-transform"
           disabled={createExpense.isPending}
         >
           {createExpense.isPending ? "Saving..." : `Record Expense${formData.amount ? ` — ₹${formData.amount}` : ""}`}

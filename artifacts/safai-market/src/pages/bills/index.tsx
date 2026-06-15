@@ -1,132 +1,52 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useListBills } from "@workspace/api-client-react";
-import { Receipt, Search, Printer, ChevronRight, Calendar, Share2, X, MessageCircle, Mail } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, Search, QrCode, Receipt, Clock, Banknote, Smartphone, AlertTriangle, ChevronDown } from "lucide-react";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { printReceipt } from "@/lib/receipt";
-import PageHeader from "@/components/page-header";
 import { useSettingsStore } from "@/stores/settings";
 
-function generateShareText(bill: any, storeName: string): string {
-  const items = (bill.items || [])
-    .map((i: any) => `${i.productName} × ${i.quantity} — ${formatCurrency(i.quantity * Number(i.unitPrice))}`)
-    .join("\n");
-  const lines = [
-    `*Bill from ${storeName}*`,
-    `Bill No: #${bill.billNumber}`,
-    `Date: ${new Date(bill.createdAt).toLocaleDateString("en-IN")}`,
-    bill.customerName ? `Customer: ${bill.customerName}` : "",
-    ``,
-    items,
-    ``,
-    `*Total: ${formatCurrency(Number(bill.totalAmount) - (Number(bill.discountAmount) || 0))}*`,
-    Number(bill.cashAmount) > 0 ? `Cash: ${formatCurrency(Number(bill.cashAmount))}` : "",
-    Number(bill.upiAmount) > 0 ? `UPI: ${formatCurrency(Number(bill.upiAmount))}` : "",
-    Number(bill.udhaarAmount) > 0 ? `Udhaar: ${formatCurrency(Number(bill.udhaarAmount))}` : "",
-    ``,
-    `Thank you for shopping!`,
-  ].filter(Boolean).join("\n");
-  return lines;
-}
+const getDatesForFilter = (filterType: "Today" | "Yesterday" | "This Week" | "This Month") => {
+  const now = new Date();
+  let from = new Date();
+  let to = new Date();
 
-function ShareSheet({ bill, storeName, onClose }: { bill: any; storeName: string; onClose: () => void }) {
-  const text = generateShareText(bill, storeName);
-  const encoded = encodeURIComponent(text);
-  const phone = bill.customerPhone?.replace(/\D/g, "");
+  if (filterType === "Today") {
+    from.setHours(0, 0, 0, 0);
+    to.setHours(23, 59, 59, 999);
+  } else if (filterType === "Yesterday") {
+    from.setDate(now.getDate() - 1);
+    from.setHours(0, 0, 0, 0);
+    to.setDate(now.getDate() - 1);
+    to.setHours(23, 59, 59, 999);
+  } else if (filterType === "This Week") {
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    from.setDate(diff);
+    from.setHours(0, 0, 0, 0);
+    to.setHours(23, 59, 59, 999);
+  } else if (filterType === "This Month") {
+    from.setDate(1);
+    from.setHours(0, 0, 0, 0);
+    to.setHours(23, 59, 59, 999);
+  }
 
-  const shareViaWhatsApp = () => {
-    const url = phone
-      ? `whatsapp://send?phone=91${phone}&text=${encoded}`
-      : `whatsapp://send?text=${encoded}`;
-    window.open(url, "_blank");
-  };
-
-  const shareViaTelegram = () => {
-    window.open(`https://t.me/share/url?url=&text=${encoded}`, "_blank");
-  };
-
-  const shareViaEmail = () => {
-    const subject = encodeURIComponent(`Bill from ${storeName} — #${bill.billNumber}`);
-    const to = bill.customerEmail ? encodeURIComponent(bill.customerEmail) : "";
-    window.open(`mailto:${to}?subject=${subject}&body=${encoded}`, "_blank");
-  };
-
-  const shareViaSystem = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `Bill #${bill.billNumber}`, text });
-      } catch {}
-    }
-  };
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl">
-        <div className="flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 bg-muted-foreground/20 rounded-full" />
-        </div>
-        <div className="flex items-center justify-between px-4 pb-3 border-b">
-          <h2 className="font-bold text-base">Share Bill #{bill.billNumber}</h2>
-          <button onClick={onClose} className="p-1">
-            <X className="w-5 h-5 text-muted-foreground" />
-          </button>
-        </div>
-        <div className="p-4 space-y-3">
-          <p className="text-xs text-muted-foreground">Share as text message</p>
-          <div className="grid grid-cols-3 gap-3">
-            <button
-              onClick={shareViaWhatsApp}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl border bg-green-50 border-green-200 active:scale-95 transition-transform"
-            >
-              <MessageCircle className="w-6 h-6 text-green-600" />
-              <span className="text-xs font-semibold text-green-700">WhatsApp</span>
-            </button>
-            <button
-              onClick={shareViaTelegram}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl border bg-blue-50 border-blue-200 active:scale-95 transition-transform"
-            >
-              <MessageCircle className="w-6 h-6 text-blue-500" />
-              <span className="text-xs font-semibold text-blue-600">Telegram</span>
-            </button>
-            <button
-              onClick={shareViaEmail}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl border bg-gray-50 border-gray-200 active:scale-95 transition-transform"
-            >
-              <Mail className="w-6 h-6 text-gray-600" />
-              <span className="text-xs font-semibold text-gray-700">Email</span>
-            </button>
-          </div>
-          {navigator.share && (
-            <Button variant="outline" className="w-full h-11 gap-2" onClick={shareViaSystem}>
-              <Share2 className="w-4 h-4" />
-              More options...
-            </Button>
-          )}
-          <Button variant="ghost" className="w-full h-10 text-muted-foreground" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
-      </div>
-    </>
-  );
-}
+  return { from: from.toISOString(), to: to.toISOString() };
+};
 
 export default function BillsHistory() {
   const [search, setSearch] = useState("");
-  const [shareTarget, setShareTarget] = useState<any>(null);
+  const [selectedFilter, setSelectedFilter] = useState<"Today" | "Yesterday" | "This Week" | "This Month">("Today");
   const [, setLocation] = useLocation();
   const { settings } = useSettingsStore();
-  const storeName = settings.storeName;
-  const { data: bills, isLoading } = useListBills();
 
-  const filtered = bills?.filter(b => {
+  const dates = getDatesForFilter(selectedFilter);
+  const { data: bills, isLoading } = useListBills({
+    from: dates.from,
+    to: dates.to,
+  });
+
+  const filtered = bills?.filter((b) => {
     if (!search) return true;
     return (
       b.billNumber?.toLowerCase().includes(search.toLowerCase()) ||
@@ -134,165 +54,155 @@ export default function BillsHistory() {
     );
   });
 
-  const handleReprint = (bill: any) => {
-    const now = new Date(bill.createdAt);
-    printReceipt({
-      storeName,
-      billNumber: bill.billNumber,
-      date: now.toLocaleDateString("en-IN"),
-      time: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-      items: (bill.items || []).map((i: any) => ({
-        productName: i.productName,
-        quantity: i.quantity,
-        unitPrice: Number(i.unitPrice),
-        totalPrice: i.quantity * Number(i.unitPrice),
-      })),
-      subtotal: Number(bill.totalAmount),
-      discountAmount: Number(bill.discountAmount) || 0,
-      totalAmount: Number(bill.totalAmount) - (Number(bill.discountAmount) || 0),
-      cashAmount: Number(bill.cashAmount) || 0,
-      upiAmount: Number(bill.upiAmount) || 0,
-      udhaarAmount: Number(bill.udhaarAmount) || 0,
-      customerName: (bill as any).customerName,
-      notes: (bill as any).notes,
-      estimatedProfit: (bill as any).estimatedProfit != null ? Number((bill as any).estimatedProfit) : null,
-    });
-  };
-
-  const getPaymentBadge = (bill: any) => {
-    const modes: string[] = [];
-    if (Number(bill.cashAmount) > 0) modes.push("Cash");
-    if (Number(bill.upiAmount) > 0) modes.push("UPI");
-    if (Number(bill.udhaarAmount) > 0) modes.push("Udhaar");
-    return modes;
-  };
+  const groupedBills = filtered?.reduce((acc: any, bill: any) => {
+    const d = formatDate(bill.createdAt);
+    if (!acc[d]) acc[d] = [];
+    acc[d].push(bill);
+    return acc;
+  }, {});
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-50/50">
-      <PageHeader title="Bills History" subtitle="All transactions" backTo="/more" />
-
-      <div className="sticky top-14 z-20 bg-background/95 backdrop-blur border-b p-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            className="pl-9 h-11 bg-background border-muted rounded-xl text-sm"
-            placeholder="Search by bill number or customer..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+    <div className="flex flex-col min-h-full bg-slate-50 font-sans pb-20">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-slate-50 border-b border-slate-200">
+        <div className="flex items-center justify-between px-4 h-14">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setLocation("/more")} className="text-primary p-1 -ml-1 hover:bg-slate-100 rounded-full active:scale-95 transition-transform">
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h1 className="font-bold text-[19px] text-primary">Bills History</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="text-primary p-2 hover:bg-slate-100 rounded-full active:scale-95 transition-transform">
+              <Search className="w-5 h-5" />
+            </button>
+            <button className="text-primary p-2 hover:bg-slate-100 rounded-full active:scale-95 transition-transform">
+              <QrCode className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 p-3 pb-24 space-y-2">
+      {/* Filter Chips */}
+      <div className="px-4 pt-4 pb-3">
+        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+          {(["Today", "Yesterday", "This Week", "This Month"] as const).map((filter) => (
+            <button
+              key={filter}
+              className={cn(
+                "shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all active:scale-95",
+                selectedFilter === filter ? "bg-primary text-white shadow-sm" : "bg-primary/10 text-primary hover:bg-primary/20"
+              )}
+              onClick={() => setSelectedFilter(filter)}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Summary Bar */}
+      {filtered && (
+        <div className="mx-4 grid grid-cols-3 gap-2 mb-4">
+          {[
+            { label: "Total",    value: formatCurrency(filtered.reduce((s, b) => s + (Number((b as any).totalAmount) - (Number((b as any).discountAmount) || 0)), 0)), color: "text-foreground" },
+            { label: "Bills",    value: filtered.length, color: "text-primary" },
+            { label: "Udhaar",   value: formatCurrency(filtered.reduce((s, b) => s + Number((b as any).udhaarAmount), 0)), color: "text-amber-600" },
+          ].map(stat => (
+            <div key={stat.label} className="bg-white rounded-2xl border p-3 text-center shadow-sm">
+              <p className={cn("text-base font-bold", stat.color)}>{stat.value}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-semibold">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Bills List */}
+      <div className="px-4 space-y-4 pb-6">
         {isLoading ? (
-          <div className="space-y-2">
-            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border h-[80px] animate-pulse" />
+            ))}
           </div>
         ) : !filtered?.length ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-            <Receipt className="w-12 h-12 mb-3 opacity-20" />
-            <p className="text-sm">{search ? "No bills match your search" : "No bills yet"}</p>
+          <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl border shadow-sm mt-2">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+              <Receipt className="w-8 h-8 text-slate-300" />
+            </div>
+            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{search ? "No bills match your search" : "No bills yet"}</p>
           </div>
         ) : (
-          filtered.map(bill => {
-            const b = bill as any;
-            const modes = getPaymentBadge(b);
-            const totalAmt = Number(b.totalAmount);
-            const discount = Number(b.discountAmount) || 0;
-            const finalAmt = totalAmt - discount;
-            const profit = b.estimatedProfit != null ? Number(b.estimatedProfit) : null;
-
+          Object.entries(groupedBills || {}).map(([date, dayBills]: [string, any]) => {
+            const dailyTotal = dayBills.reduce((s: number, b: any) => s + (Number(b.totalAmount) - (Number(b.discountAmount) || 0)), 0);
             return (
-              <Card key={b.id} className="shadow-sm border-muted/60 overflow-hidden">
-                <CardContent className="p-0">
-                  <div className="p-4 pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-bold text-sm font-mono text-primary">#{b.billNumber}</span>
-                          {b.customerName && (
-                            <span className="text-xs text-muted-foreground truncate">{b.customerName}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          <span>{formatDate(b.createdAt)}</span>
-                          {b.createdAt && (
-                            <span>· {formatTime(b.createdAt)}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0 ml-3">
-                        <div className="font-bold text-base">{formatCurrency(finalAmt)}</div>
-                        {discount > 0 && (
-                          <div className="text-[10px] text-muted-foreground line-through">{formatCurrency(totalAmt)}</div>
-                        )}
-                      </div>
-                    </div>
+              <div key={date} className="space-y-2">
+                <div className="sticky top-14 z-30 bg-slate-50 py-2 flex items-center justify-between border-b border-slate-200">
+                  <p className="text-sm font-bold text-slate-700">{date}</p>
+                  <p className="text-sm font-bold text-primary">{formatCurrency(dailyTotal)}</p>
+                </div>
+                <div className="space-y-2">
+                  {dayBills.map((bill: any) => {
+                    const hasUdhaar = Number(bill.udhaarAmount) > 0;
+                    const isCancelled = bill.status === "cancelled";
 
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {modes.map(m => (
-                        <Badge key={m} variant="outline" className={cn(
-                          "text-[10px] h-5 px-1.5 font-medium",
-                          m === "Udhaar" ? "border-amber-300 text-amber-700 bg-amber-50" :
-                          m === "UPI" ? "border-blue-200 text-blue-700 bg-blue-50" :
-                          "border-green-200 text-green-700 bg-green-50"
-                        )}>
-                          {m}
-                        </Badge>
-                      ))}
-                      {profit != null && (
-                        <Badge variant="outline" className={cn(
-                          "text-[10px] h-5 px-1.5 font-medium ml-auto",
-                          profit >= 0 ? "border-emerald-200 text-emerald-700 bg-emerald-50" : "border-red-200 text-red-700 bg-red-50"
-                        )}>
-                          {profit >= 0 ? "+" : ""}{formatCurrency(profit)} profit
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="border-t border-muted/50 flex">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex-1 h-9 rounded-none text-xs text-muted-foreground gap-1.5 hover:bg-muted/50"
-                      onClick={() => handleReprint(b)}
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      Print
-                    </Button>
-                    <div className="w-px bg-muted/50" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex-1 h-9 rounded-none text-xs text-muted-foreground gap-1.5 hover:bg-muted/50"
-                      onClick={() => setShareTarget(b)}
-                    >
-                      <Share2 className="w-3.5 h-3.5" />
-                      Share
-                    </Button>
-                    <div className="w-px bg-muted/50" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex-1 h-9 rounded-none text-xs text-muted-foreground gap-1.5 hover:bg-muted/50"
-                      onClick={() => setLocation(`/bills/${b.id}`)}
-                    >
-                      View
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                    return (
+                      <Link key={bill.id} href={`/bills/${bill.id}`} className="block active-elevate">
+                        <div className="bg-white rounded-2xl border px-4 py-3 flex items-center justify-between shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                              isCancelled ? "bg-red-50 text-red-500" : hasUdhaar ? "bg-amber-50 text-amber-500" : "bg-primary/10 text-primary"
+                            )}>
+                              <Receipt className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-foreground">#{bill.billNumber}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                                {bill.customerName || "Walk-in"} · {(bill.items?.length || "?")} items
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-1 font-medium">
+                                {formatTime(bill.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className={cn("text-base font-bold", isCancelled ? "text-muted-foreground line-through" : hasUdhaar ? "text-amber-600" : "text-foreground")}>
+                              {formatCurrency(Number(bill.totalAmount) - (Number(bill.discountAmount) || 0))}
+                            </p>
+                            {hasUdhaar && !isCancelled && (
+                              <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider mt-1 px-1.5 py-0.5 rounded bg-amber-50 inline-block border border-amber-100">
+                                Udhaar {formatCurrency(Number(bill.udhaarAmount))}
+                              </p>
+                            )}
+                            {isCancelled && (
+                              <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1 px-1.5 py-0.5 rounded bg-red-50 inline-block border border-red-100">Cancelled</p>
+                            )}
+                            {!hasUdhaar && !isCancelled && (
+                              <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mt-1 px-1.5 py-0.5 rounded bg-emerald-50 inline-block border border-emerald-100">
+                                {Number(bill.upiAmount) > 0 ? "UPI" : "CASH"} PAID
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })
         )}
-      </div>
 
-      {shareTarget && (
-        <ShareSheet bill={shareTarget} storeName={storeName} onClose={() => setShareTarget(null)} />
-      )}
+        {/* Load Older */}
+        {filtered && filtered.length > 0 && (
+          <div className="flex flex-col items-center py-6 gap-2">
+            <button className="text-primary font-bold text-sm flex items-center gap-1 active:scale-95 transition-transform bg-primary/10 px-4 py-2 rounded-full">
+              Load Older History <ChevronDown className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

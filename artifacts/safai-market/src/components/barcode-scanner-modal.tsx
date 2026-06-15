@@ -7,9 +7,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onDetected: (barcode: string) => void;
+  continuous?: boolean;
 }
 
-export default function BarcodeScannerModal({ open, onClose, onDetected }: Props) {
+export default function BarcodeScannerModal({ open, onClose, onDetected, continuous = false }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,9 +59,18 @@ export default function BarcodeScannerModal({ open, onClose, onDetected }: Props
         if (result && !detectedRef.current) {
           detectedRef.current = true;
           const text = result.getText();
-          stopCamera();
-          onDetected(text);
-          onClose();
+          
+          if (!continuous) {
+            stopCamera();
+            onDetected(text);
+            onClose();
+          } else {
+            onDetected(text);
+            // In continuous mode, allow scanning again after a short delay
+            setTimeout(() => {
+              detectedRef.current = false;
+            }, 1000); // 1s cooldown between scans
+          }
         }
         if (err && !(err instanceof NotFoundException)) {
           console.warn("Scan error:", err);

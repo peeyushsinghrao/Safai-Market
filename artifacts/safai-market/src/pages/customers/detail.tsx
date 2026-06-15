@@ -1,28 +1,24 @@
 import { useState } from "react";
-import { useLocation, useRoute } from "wouter";
+import { useLocation, useRoute, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { IndianRupee, Phone, Calendar, ArrowDownRight, ArrowUpRight, Edit } from "lucide-react";
+import { ArrowLeft, Pencil, QrCode, Phone, MapPin, Bell, Banknote, ArrowDownRight, ArrowUpRight, Receipt, Calendar, IndianRupee, CheckCircle2 } from "lucide-react";
 import { useSettingsStore } from "@/stores/settings";
-import PageHeader from "@/components/page-header";
-import { 
-  useGetCustomer, 
+import {
+  useGetCustomer,
   useReceiveCustomerPayment,
   getGetCustomerQueryKey,
   getListCustomersQueryKey,
-  getGetDashboardSummaryQueryKey
+  getGetDashboardSummaryQueryKey,
 } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export default function CustomerDetail() {
-  const [, params] = useRoute('/customers/:id');
+  const [, params] = useRoute("/customers/:id");
   const id = Number(params?.id);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -30,7 +26,7 @@ export default function CustomerDetail() {
   const { settings } = useSettingsStore();
 
   const { data: customer, isLoading } = useGetCustomer(id, {
-    query: { enabled: !!id, queryKey: getGetCustomerQueryKey(id) }
+    query: { enabled: !!id, queryKey: getGetCustomerQueryKey(id) },
   });
 
   const receivePayment = useReceiveCustomerPayment();
@@ -74,112 +70,143 @@ export default function CustomerDetail() {
     const amount = Number(payAmount);
     if (!amount || amount <= 0) return;
 
-    receivePayment.mutate({
-      id,
-      data: {
-        amount,
-        paymentMode: payMode,
-        notes: payNotes || undefined
-      }
-    }, {
-      onSuccess: () => {
-        toast({ title: "Success", description: "Payment received successfully" });
-        setIsPaymentOpen(false);
-        setPayAmount("");
-        setPayNotes("");
-        queryClient.invalidateQueries({ queryKey: getGetCustomerQueryKey(id) });
-        queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+    receivePayment.mutate(
+      {
+        id,
+        data: {
+          amount,
+          paymentMode: payMode,
+          notes: payNotes || undefined,
+        },
       },
-      onError: (err) => {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+      {
+        onSuccess: () => {
+          toast({ title: "Success", description: "Payment received successfully" });
+          setIsPaymentOpen(false);
+          setPayAmount("");
+          setPayNotes("");
+          queryClient.invalidateQueries({ queryKey: getGetCustomerQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+        },
+        onError: (err) => {
+          toast({ title: "Error", description: err.message, variant: "destructive" });
+        },
       }
-    });
+    );
   };
 
   if (isLoading) {
-    return <div className="p-4 space-y-4">
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-40 w-full" />
-      <Skeleton className="h-60 w-full" />
-    </div>;
+    return (
+      <div className="p-4 space-y-4 bg-[#f8fafc] min-h-full">
+        <div className="h-10 bg-slate-200 rounded-xl animate-pulse" />
+        <div className="h-40 bg-slate-200 rounded-xl animate-pulse" />
+        <div className="h-60 bg-slate-200 rounded-xl animate-pulse" />
+      </div>
+    );
   }
 
   if (!customer) {
-    return <div className="p-4 text-center">Customer not found.</div>;
+    return <div className="p-4 text-center text-slate-500">Customer not found.</div>;
   }
 
+  const udhaar = Number(customer.udhaarBalance ?? 0);
+  const hasUdhaar = udhaar > 0;
+  
+  // Extract all bills from ledger
+  const customerBills = (customer.ledger as any[])?.filter(e => e.entryType === "debit") || [];
+  
+  // Lifetime value
+  const lifetimeValue = customerBills.reduce((sum, b) => sum + Number(b.amount), 0);
+
   return (
-    <div className="flex flex-col min-h-full bg-gray-50/50 pb-20">
-      <PageHeader
-        title={customer.name}
-        backTo="/customers"
-        right={
-          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 h-9 w-9 rounded-xl" onClick={() => setLocation(`/customers/${id}/edit`)}>
-            <Edit className="w-4 h-4" />
-          </Button>
-        }
-      />
+    <div className="flex flex-col min-h-full bg-slate-50 font-sans pb-20">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-white border-b border-muted/50 shadow-sm">
+        <div className="flex items-center justify-between px-4 h-14">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setLocation("/customers")}
+              className="text-muted-foreground p-1 -ml-1 hover:bg-slate-100 rounded-full transition-colors active:scale-95"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h1 className="font-bold text-[19px] text-foreground">{customer.name}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setLocation(`/customers/${id}/edit`)}
+              className="text-muted-foreground p-2 hover:bg-slate-100 hover:text-primary rounded-full transition-colors active:scale-95"
+            >
+              <Pencil className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
 
-      <div className="p-4 space-y-4">
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">{customer.name}</h2>
-                {customer.phone && (
-                  <div className="flex items-center text-sm text-muted-foreground mt-1 gap-1">
-                    <Phone className="w-4 h-4" /> {customer.phone}
-                  </div>
-                )}
-                {customer.address && (
-                  <p className="text-xs text-muted-foreground mt-1">{customer.address}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-              <span className="text-sm font-medium text-blue-800 mb-1">Udhaar Balance</span>
-              <div className={cn(
-                "text-4xl font-bold tracking-tight",
-                Number(customer.udhaarBalance) > 0 ? "text-destructive" : "text-primary"
-              )}>
-                {formatCurrency(customer.udhaarBalance)}
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              {Number(customer.udhaarBalance) > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={handleUdhaarReminder}
-                  className="w-full gap-2 border-green-200 text-green-700 hover:bg-green-50 rounded-xl h-10"
-                >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                  </svg>
-                  Send WhatsApp Reminder
-                </Button>
-              )}
+      <div className="pb-6">
+        {/* Udhaar Hero — only shown when balance > 0 */}
+        {hasUdhaar && (
+          <div className="mx-4 mt-4 rounded-3xl bg-red-500 text-white p-5 shadow-xl shadow-red-500/30 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full" />
+            <p className="text-red-100 text-xs font-semibold uppercase tracking-wider mb-1">
+              Outstanding Udhaar
+            </p>
+            <p className="text-4xl font-bold mb-4 relative z-10">
+              {formatCurrency(udhaar)}
+            </p>
+            <div className="grid grid-cols-2 gap-2 relative z-10">
+              <button
+                onClick={handleUdhaarReminder}
+                className="flex items-center justify-center gap-2 h-11 rounded-xl bg-white/20 text-white text-sm font-semibold active-elevate hover:bg-white/30 transition-colors"
+              >
+                <Bell className="w-4 h-4" />
+                Send Reminder
+              </button>
               <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
                 <DialogTrigger asChild>
-                  <Button className="w-full active-elevate h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white shadow-md">
-                    <IndianRupee className="w-5 h-5 mr-2" /> Receive Payment
-                  </Button>
+                  <button className="flex items-center justify-center gap-2 h-11 rounded-xl bg-white text-red-600 text-sm font-bold active-elevate shadow-md">
+                    <IndianRupee className="w-4 h-4" />
+                    Collect Payment
+                  </button>
                 </DialogTrigger>
-                <DialogContent className="w-[90vw] max-w-md rounded-xl">
+                <DialogContent className="w-[90vw] max-w-md rounded-[16px]">
                   <DialogHeader>
                     <DialogTitle>Receive Payment from {customer.name}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Amount (₹)</label>
-                      <Input type="number" min="1" value={payAmount} onChange={e => setPayAmount(e.target.value)} className="h-12 text-lg" />
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">Amount (₹)</label>
+                      <Input type="number" min="1" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="h-12 text-lg rounded-[12px]" />
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {(() => {
+                          const chips = udhaar < 500 ? [100, 500] : [500, 1000, 5000];
+                          return chips.filter(amt => amt <= udhaar || amt === 500).map((amt) => (
+                            <button
+                              key={amt}
+                              type="button"
+                              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-medium transition-colors"
+                              onClick={() => setPayAmount(String(amt))}
+                            >
+                              ₹{amt}
+                            </button>
+                          ));
+                        })()}
+                        {udhaar > 0 && (
+                          <button
+                            type="button"
+                            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-medium transition-colors text-primary"
+                            onClick={() => setPayAmount(String(Math.ceil(udhaar)))}
+                          >
+                            Full
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Payment Mode</label>
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">Payment Mode</label>
                       <Select value={payMode} onValueChange={(v: any) => setPayMode(v)}>
-                        <SelectTrigger className="h-12">
+                        <SelectTrigger className="h-12 rounded-[12px]">
                           <SelectValue placeholder="Select mode" />
                         </SelectTrigger>
                         <SelectContent>
@@ -189,64 +216,158 @@ export default function CustomerDetail() {
                       </Select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes (optional)</label>
-                      <Input value={payNotes} onChange={e => setPayNotes(e.target.value)} className="h-12" />
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">Notes (optional)</label>
+                      <Input value={payNotes} onChange={(e) => setPayNotes(e.target.value)} className="h-12 rounded-[12px]" />
                     </div>
-                    <Button 
-                      className="w-full h-12 text-lg active-elevate bg-blue-600 hover:bg-blue-700 text-white" 
+                    <button
+                      className="w-full h-[52px] bg-primary hover:bg-primary/90 text-primary-foreground rounded-[12px] font-bold text-[16px] disabled:opacity-50 active-elevate"
                       onClick={handlePayment}
                       disabled={receivePayment.isPending || !payAmount || Number(payAmount) <= 0}
                     >
                       {receivePayment.isPending ? "Processing..." : "Confirm Payment"}
-                    </Button>
+                    </button>
                   </div>
                 </DialogContent>
               </Dialog>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
 
+        {/* No Udhaar — show a green "all clear" card */}
+        {!hasUdhaar && (
+          <div className="mx-4 mt-4 rounded-3xl bg-green-50 border border-green-200 p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-green-700">No Outstanding Udhaar</p>
+              <p className="text-xs text-green-600">All payments are cleared</p>
+            </div>
+          </div>
+        )}
 
-        <Card className="shadow-sm">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              Ledger History
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {(customer.ledger as any[])?.length === 0 ? (
-              <div className="p-6 text-center text-sm text-muted-foreground">No ledger history found.</div>
-            ) : (
-              <div className="divide-y">
-                {(customer.ledger as any[])?.map((entry: any) => (
-                  <div key={entry.id} className="p-3 px-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                        entry.entryType === 'credit' ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
-                      )}>
-                        {entry.entryType === 'credit' ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium line-clamp-1">{entry.description}</span>
-                        <span className="text-xs text-muted-foreground">{formatDate(entry.createdAt)}</span>
-                      </div>
-                    </div>
-                    <div className="text-right pl-2 shrink-0">
-                      <div className={cn(
-                        "text-sm font-bold",
-                        entry.entryType === 'credit' ? "text-primary" : "text-destructive"
-                      )}>
-                        {entry.entryType === 'credit' ? "-" : "+"}{formatCurrency(entry.amount)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+        {/* Top Stat Cards */}
+        <div className="mx-4 mt-4 grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-2xl border p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Receipt className="w-4 h-4 text-primary" />
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Bills</p>
+            </div>
+            <p className="text-2xl font-bold">{customerBills.length}</p>
+          </div>
+          <div className="bg-white rounded-2xl border p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Sales</p>
+            </div>
+            <p className="text-2xl font-bold">{formatCurrency(lifetimeValue)}</p>
+          </div>
+        </div>
+
+        {/* Contact Info */}
+        <div className="mx-4 mt-3 bg-white rounded-2xl border shadow-sm">
+          <div className="p-4 flex flex-col gap-3">
+            {customer.phone && (
+              <a href={`tel:+91${customer.phone.replace(/\D/g, "")}`}
+                className="flex items-center gap-3 text-sm font-medium text-foreground hover:text-primary transition-colors active-elevate">
+                <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                  <Phone className="w-4.5 h-4.5 text-blue-600" />
+                </div>
+                {customer.phone}
+              </a>
+            )}
+            {customer.address && (
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                  <MapPin className="w-4.5 h-4.5 text-slate-500" />
+                </div>
+                <span className="truncate">{customer.address}</span>
               </div>
             )}
-          </CardContent>
-        </Card>
+            {!customer.phone && !customer.address && (
+              <div className="text-sm text-muted-foreground italic flex justify-center py-2">No contact information saved</div>
+            )}
+          </div>
+        </div>
+
+        {/* Ledger/Bills Timeline */}
+        <div className="mx-4 mt-6">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Recent Activity
+          </p>
+          <div className="space-y-3 relative">
+            {/* Timeline line */}
+            {(customer.ledger as any[])?.length > 0 && (
+              <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-slate-200" />
+            )}
+            
+            {(customer.ledger as any[])?.length === 0 ? (
+              <div className="py-8 text-center bg-white rounded-2xl border border-dashed text-[14px] text-muted-foreground">
+                No history found.
+              </div>
+            ) : (
+              (customer.ledger as any[])?.slice().reverse().map((entry: any) => {
+                const isCredit = entry.entryType === "credit";
+                const isBill = entry.description.toLowerCase().includes("bill");
+                
+                return (
+                  <div key={entry.id} className="relative z-10 flex gap-3 items-start group">
+                    <div className={cn(
+                      "w-9 h-9 rounded-full flex items-center justify-center shadow-sm shrink-0 mt-0.5 text-white ring-4 ring-gray-50/50",
+                      isCredit ? "bg-emerald-500" : (isBill ? "bg-primary" : "bg-red-500")
+                    )}>
+                      {isCredit ? <ArrowDownRight className="w-4 h-4" /> : (isBill ? <Receipt className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />)}
+                    </div>
+                    {isBill ? (
+                      <Link href={`/bills/${entry.billId || entry.description.split("#")[1]}`} className="flex-1 block active-elevate">
+                        <div className="bg-white rounded-2xl border px-4 py-3 shadow-sm hover:border-primary/30 transition-colors">
+                          <div className="flex justify-between items-start mb-1.5">
+                            <span className="font-semibold text-slate-800 text-[15px] truncate pr-2">{entry.description}</span>
+                            <span className="font-bold text-slate-900 shrink-0">{formatCurrency(entry.amount)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {formatDate(entry.createdAt)}
+                            </span>
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100">
+                              UDHAAR
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="flex-1 bg-white rounded-2xl border px-4 py-3 shadow-sm">
+                        <div className="flex justify-between items-start mb-1.5">
+                          <span className="font-semibold text-slate-800 text-[15px] truncate pr-2">{entry.description}</span>
+                          <span className={cn("font-bold shrink-0", isCredit ? "text-emerald-600" : "text-red-600")}>
+                            {formatCurrency(entry.amount)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {formatDate(entry.createdAt)}
+                          </span>
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border",
+                            isCredit ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-red-50 text-red-600 border-red-100"
+                          )}>
+                            {isCredit ? "PAID" : "UDHAAR"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

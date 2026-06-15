@@ -1,323 +1,278 @@
 import { useParams, useLocation } from "wouter";
 import { useGetBill } from "@workspace/api-client-react";
-import { Receipt, Calendar, Printer, Share2, MessageCircle, Mail, ChevronLeft, X, Download } from "lucide-react";
+import { ArrowLeft, User, Printer, Share2, Download, Smartphone, BookOpen, Banknote } from "lucide-react";
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
 import { printReceipt, downloadReceiptAsFile } from "@/lib/receipt";
 import { useSettingsStore } from "@/stores/settings";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
-function generateShareText(bill: any, storeName: string): string {
-  const items = (bill.items || [])
-    .map((i: any) => `${i.productName} × ${Number(i.quantity)} — ${formatCurrency(Number(i.quantity) * Number(i.unitPrice))}`)
-    .join("\n");
-  const finalAmt = Number(bill.totalAmount) - (Number(bill.discountAmount) || 0);
-  return [
-    `*Bill from ${storeName}*`,
-    `Bill No: #${bill.billNumber}`,
-    `Date: ${new Date(bill.createdAt).toLocaleDateString("en-IN")}`,
-    bill.customerName ? `Customer: ${bill.customerName}` : "",
-    ``,
-    items,
-    ``,
-    `*Total: ${formatCurrency(finalAmt)}*`,
-    Number(bill.cashAmount) > 0 ? `Cash: ${formatCurrency(Number(bill.cashAmount))}` : "",
-    Number(bill.upiAmount) > 0 ? `UPI: ${formatCurrency(Number(bill.upiAmount))}` : "",
-    Number(bill.udhaarAmount) > 0 ? `Udhaar: ${formatCurrency(Number(bill.udhaarAmount))}` : "",
-    ``,
-    `Thank you for shopping!`,
-  ].filter(Boolean).join("\n");
-}
-
-function ShareSheet({ bill, storeName, onClose }: { bill: any; storeName: string; onClose: () => void }) {
-  const text = generateShareText(bill, storeName);
-  const encoded = encodeURIComponent(text);
-  const phone = bill.customerPhone?.replace(/\D/g, "");
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl">
-        <div className="flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 bg-muted-foreground/20 rounded-full" />
-        </div>
-        <div className="flex items-center justify-between px-4 pb-3 border-b">
-          <h2 className="font-bold text-base">Share Bill #{bill.billNumber}</h2>
-          <button onClick={onClose} className="p-1"><X className="w-5 h-5 text-muted-foreground" /></button>
-        </div>
-        <div className="p-4 space-y-3">
-          <div className="grid grid-cols-3 gap-3">
-            <button
-              onClick={() => window.open(phone ? `whatsapp://send?phone=91${phone}&text=${encoded}` : `whatsapp://send?text=${encoded}`, "_blank")}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl border bg-green-50 border-green-200 active:scale-95 transition-transform"
-            >
-              <MessageCircle className="w-6 h-6 text-green-600" />
-              <span className="text-xs font-semibold text-green-700">WhatsApp</span>
-            </button>
-            <button
-              onClick={() => window.open(`https://t.me/share/url?url=&text=${encoded}`, "_blank")}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl border bg-blue-50 border-blue-200 active:scale-95 transition-transform"
-            >
-              <MessageCircle className="w-6 h-6 text-blue-500" />
-              <span className="text-xs font-semibold text-blue-600">Telegram</span>
-            </button>
-            <button
-              onClick={() => {
-                const subject = encodeURIComponent(`Bill from ${storeName} — #${bill.billNumber}`);
-                const to = bill.customerEmail ? encodeURIComponent(bill.customerEmail) : "";
-                window.open(`mailto:${to}?subject=${subject}&body=${encoded}`, "_blank");
-              }}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl border bg-gray-50 border-gray-200 active:scale-95 transition-transform"
-            >
-              <Mail className="w-6 h-6 text-gray-600" />
-              <span className="text-xs font-semibold text-gray-700">Email</span>
-            </button>
-          </div>
-          {navigator.share && (
-            <Button variant="outline" className="w-full h-11 gap-2" onClick={() => navigator.share({ title: `Bill #${bill.billNumber}`, text }).catch(() => {})}>
-              <Share2 className="w-4 h-4" />
-              More options...
-            </Button>
-          )}
-          <Button variant="ghost" className="w-full h-10 text-muted-foreground" onClick={onClose}>Cancel</Button>
-        </div>
-      </div>
-    </>
-  );
-}
 
 export default function BillDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const [shareOpen, setShareOpen] = useState(false);
   const { settings } = useSettingsStore();
-  const storeName = settings.storeName;
+  const storeName = settings.storeName || "Store Name";
+  const { toast } = useToast();
 
-  const { data: bill, isLoading } = useGetBill(Number(id));
+  const { data: bill, isLoading, refetch } = useGetBill(Number(id));
+  const [isPrinting, setIsPrinting] = useState(false);
 
-  const buildReceiptData = () => {
-    if (!bill) return null;
-    const now = new Date(bill.createdAt);
+  const buildReceiptData = (freshBill: any) => {
+    if (!freshBill) return null;
+    const now = new Date(freshBill.createdAt);
     return {
       storeName,
-      billNumber: bill.billNumber,
+      billNumber: freshBill.billNumber,
       date: now.toLocaleDateString("en-IN"),
       time: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-      items: ((bill as any).items || []).map((i: any) => ({
+      items: ((freshBill as any).items || []).map((i: any) => ({
         productName: i.productName,
         quantity: Number(i.quantity),
         unitPrice: Number(i.unitPrice),
         totalPrice: Number(i.quantity) * Number(i.unitPrice),
       })),
-      subtotal: Number(bill.totalAmount),
-      discountAmount: Number(bill.discountAmount) || 0,
-      totalAmount: Number(bill.totalAmount) - (Number(bill.discountAmount) || 0),
-      cashAmount: Number(bill.cashAmount) || 0,
-      upiAmount: Number(bill.upiAmount) || 0,
-      udhaarAmount: Number(bill.udhaarAmount) || 0,
-      customerName: (bill as any).customerName,
-      notes: bill.notes ?? undefined,
+      subtotal: Number(freshBill.totalAmount),
+      discountAmount: Number(freshBill.discountAmount) || 0,
+      totalAmount: Number(freshBill.totalAmount) - (Number(freshBill.discountAmount) || 0),
+      cashAmount: Number(freshBill.cashAmount) || 0,
+      upiAmount: Number(freshBill.upiAmount) || 0,
+      udhaarAmount: Number(freshBill.udhaarAmount) || 0,
+      customerName: (freshBill as any).customerName,
+      notes: freshBill.notes ?? undefined,
       storeLogo: settings.logoUrl,
     };
   };
 
-  const handlePrint = () => {
-    const d = buildReceiptData();
-    if (d) printReceipt(d);
+  const handlePrint = async () => {
+    try {
+      setIsPrinting(true);
+      const res = await refetch();
+      if (!res.data) throw new Error("Could not fetch bill data");
+      const d = buildReceiptData(res.data);
+      if (d) printReceipt(d);
+    } catch (err: any) {
+      toast({ title: "Print Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsPrinting(false);
+    }
   };
 
-  const handleDownload = () => {
-    const d = buildReceiptData();
-    if (d) downloadReceiptAsFile(d);
+  const handleDownload = async () => {
+    try {
+      const res = await refetch();
+      const d = buildReceiptData(res.data);
+      if (d) downloadReceiptAsFile(d);
+    } catch {}
+  };
+
+  const handleShare = () => {
+    if (!bill) return;
+    const b = bill as any;
+    const items = (b.items || [])
+      .map((i: any) => `${i.productName} × ${Number(i.quantity)} — ${formatCurrency(Number(i.quantity) * Number(i.unitPrice))}`)
+      .join("\n");
+    const finalAmt = Number(b.totalAmount) - (Number(b.discountAmount) || 0);
+    const text = [
+      `*Bill from ${storeName}*`,
+      `Bill No: #${b.billNumber}`,
+      `Date: ${new Date(b.createdAt).toLocaleDateString("en-IN")}`,
+      b.customerName ? `Customer: ${b.customerName}` : "",
+      ``, items, ``,
+      `*Total: ${formatCurrency(finalAmt)}*`,
+    ].filter(Boolean).join("\n");
+    const encoded = encodeURIComponent(text);
+    window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
 
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-full bg-gray-50/50">
-        <div className="h-14 bg-primary" />
-        <div className="p-4 space-y-4">
-          <Skeleton className="h-32 w-full rounded-xl" />
-          <Skeleton className="h-48 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
-        </div>
+      <div className="bg-slate-50 font-sans min-h-full p-4 space-y-4">
+        <div className="h-14 bg-slate-200 rounded-xl animate-pulse" />
+        <div className="h-32 bg-slate-200 rounded-xl animate-pulse" />
+        <div className="h-48 bg-slate-200 rounded-xl animate-pulse" />
       </div>
     );
   }
 
   if (!bill) {
     return (
-      <div className="flex flex-col min-h-full bg-gray-50/50">
-        <div className="h-14 bg-primary flex items-center px-4 gap-3">
-          <button onClick={() => setLocation("/bills")} className="text-primary-foreground">
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <span className="text-primary-foreground font-bold text-lg">Bill Not Found</span>
+      <div className="flex flex-col min-h-full bg-slate-50 font-sans">
+        <div className="sticky top-0 z-40 bg-white border-b border-muted/50 h-14 flex items-center px-4 gap-3 shadow-sm">
+          <button onClick={() => setLocation("/bills")} className="text-muted-foreground transition-all active-elevate"><ArrowLeft className="w-6 h-6" /></button>
+          <span className="font-bold text-foreground">Bill Not Found</span>
         </div>
-        <div className="flex flex-col items-center justify-center flex-1 text-center text-muted-foreground py-16">
-          <Receipt className="w-12 h-12 mb-3 opacity-20" />
-          <p className="text-sm">This bill does not exist.</p>
+        <div className="flex-1 flex items-center justify-center text-muted-foreground py-16">
+          <div className="text-center">
+            <span className="text-4xl opacity-50 mb-2 block">🧾</span>
+            <p>Could not find this bill.</p>
+          </div>
         </div>
       </div>
     );
   }
 
   const b = bill as any;
-  const items: any[] = b.items || [];
-  const totalAmt = Number(b.totalAmount);
-  const discount = Number(b.discountAmount) || 0;
-  const finalAmt = totalAmt - discount;
-  const profit = b.estimatedProfit != null ? Number(b.estimatedProfit) : null;
-
-  const paymentModes: { label: string; amount: number; color: string }[] = [
-    ...(Number(b.cashAmount) > 0 ? [{ label: "Cash", amount: Number(b.cashAmount), color: "text-green-700" }] : []),
-    ...(Number(b.upiAmount) > 0 ? [{ label: "UPI", amount: Number(b.upiAmount), color: "text-blue-700" }] : []),
-    ...(Number(b.udhaarAmount) > 0 ? [{ label: "Udhaar", amount: Number(b.udhaarAmount), color: "text-amber-700" }] : []),
-  ];
-
   const isCancelled = b.status === "cancelled";
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-50/50 pb-20">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 shadow-sm">
-        <button onClick={() => setLocation("/bills")} className="text-primary-foreground p-1 -ml-1">
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-bold text-base leading-tight">Bill #{b.billNumber}</h1>
-          {b.customerName && <p className="text-xs text-primary-foreground/70 truncate">{b.customerName}</p>}
+    <div className="flex flex-col min-h-full bg-slate-50 font-sans">
+      {/* Header Bar */}
+      <div className="sticky top-0 z-40 bg-white border-b border-muted/50 shadow-sm">
+        <div className="flex items-center px-4 h-14 gap-3">
+          <button onClick={() => setLocation("/bills")} className="text-muted-foreground p-1 -ml-1 hover:bg-slate-100 rounded-full transition-all active-elevate">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <span className="font-bold text-[17px] text-foreground">Bill Detail</span>
         </div>
-        {isCancelled && (
-          <Badge className="bg-red-500/20 text-red-100 border-red-400/30 text-[10px]">Cancelled</Badge>
-        )}
       </div>
 
-      <div className="p-4 space-y-4">
-        {/* Bill Meta */}
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Calendar className="w-3.5 h-3.5" />
-                <span>{formatDate(b.createdAt)}</span>
-                <span>·</span>
-                <span>{formatTime(b.createdAt)}</span>
+      <div className="flex-1 pb-4">
+        <div className="mx-4 mt-4 bg-white rounded-3xl border border-muted/50 shadow-sm overflow-hidden relative">
+          {/* Top zig-zag edge for receipt feel could go here, but rounded-3xl is fine */}
+          
+          {/* Receipt header — centered, like a real receipt */}
+          <div className="px-6 py-5 text-center border-b border-dashed border-muted">
+            {settings.storeName && (
+              <p className="text-lg font-bold tracking-wide text-foreground">{settings.storeName}</p>
+            )}
+            {settings.address && (
+              <p className="text-xs text-muted-foreground mt-0.5">{settings.address}</p>
+            )}
+            {settings.phone && (
+              <p className="text-xs text-muted-foreground">{settings.phone}</p>
+            )}
+            {settings.gstNumber && (
+              <p className="text-xs text-muted-foreground font-mono mt-1">GSTIN: {settings.gstNumber}</p>
+            )}
+
+            <div className="mt-4 mb-1">
+              <span className={cn(
+                "text-xs font-bold px-3 py-1 rounded-full",
+                isCancelled ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
+              )}>
+                {isCancelled ? "CANCELLED" : "PAID"}
+              </span>
+            </div>
+
+            <p className="text-xl font-bold font-mono tracking-wider mt-2 text-foreground">
+              {b.billNumber}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {formatDate(b.createdAt)} · {formatTime(b.createdAt)}
+            </p>
+            {b.customerName && (
+              <div className="flex items-center justify-center gap-1.5 mt-2 text-foreground">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <p className="text-sm font-medium">{b.customerName}</p>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-primary">{formatCurrency(finalAmt)}</div>
-                {discount > 0 && (
-                  <div className="text-xs text-muted-foreground line-through">{formatCurrency(totalAmt)}</div>
-                )}
+            )}
+          </div>
+
+          {/* Items List — Receipt Style */}
+          <div className="px-5 py-4 space-y-3">
+            {b.items?.map((item: any, idx: number) => (
+              <div key={idx} className="flex justify-between items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold leading-tight text-foreground truncate">{item.productName}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatCurrency(Number(item.unitPrice))} × {Number(item.quantity)}
+                    {Number(item.discountAmount) > 0 && (
+                      <span className="text-red-500 ml-1.5">
+                        (-{formatCurrency(Number(item.discountAmount))})
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <p className="text-sm font-bold shrink-0 text-foreground">
+                  {formatCurrency(Number(item.totalPrice))}
+                </p>
               </div>
+            ))}
+          </div>
+
+          <div className="border-t border-dashed border-muted mx-5" />
+
+          {/* Totals Section */}
+          <div className="px-5 py-4 space-y-2">
+            {Number(b.discountAmount) > 0 && (
+              <>
+                <div className="flex justify-between text-sm text-foreground">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>{formatCurrency(Number(b.totalAmount) + Number(b.discountAmount))}</span>
+                </div>
+                <div className="flex justify-between text-sm text-foreground">
+                  <span className="text-muted-foreground">Discount</span>
+                  <span className="text-red-500">-{formatCurrency(Number(b.discountAmount))}</span>
+                </div>
+                <div className="h-px bg-muted my-2" />
+              </>
+            )}
+            <div className="flex justify-between text-base font-bold text-foreground">
+              <span>Total</span>
+              <span>{formatCurrency(Number(b.totalAmount))}</span>
             </div>
 
             {/* Payment breakdown */}
-            <div className="flex flex-wrap gap-2 mt-2">
-              {paymentModes.map(pm => (
-                <div key={pm.label} className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold",
-                  pm.label === "Udhaar" ? "bg-amber-50 text-amber-700" :
-                  pm.label === "UPI" ? "bg-blue-50 text-blue-700" :
-                  "bg-green-50 text-green-700"
-                )}>
-                  <span>{pm.label}</span>
-                  <span className="font-bold">{formatCurrency(pm.amount)}</span>
+            <div className="h-px bg-muted my-2" />
+            <div className="space-y-1.5 pt-1">
+              {Number(b.cashAmount) > 0 && (
+                <div className="flex justify-between text-sm text-foreground">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Banknote className="w-3.5 h-3.5" /> Cash
+                  </span>
+                  <span className="font-medium">{formatCurrency(Number(b.cashAmount))}</span>
                 </div>
-              ))}
-              {profit != null && (
-                <div className={cn(
-                  "flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold ml-auto",
-                  profit >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
-                )}>
-                  <span>{profit >= 0 ? "+" : ""}{formatCurrency(profit)} profit</span>
+              )}
+              {Number(b.upiAmount) > 0 && (
+                <div className="flex justify-between text-sm text-foreground">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Smartphone className="w-3.5 h-3.5" /> UPI
+                  </span>
+                  <span className="font-medium">{formatCurrency(Number(b.upiAmount))}</span>
+                </div>
+              )}
+              {Number(b.udhaarAmount) > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-1.5 text-amber-600 font-medium">
+                    <BookOpen className="w-3.5 h-3.5" /> Udhaar
+                  </span>
+                  <span className="text-amber-600 font-bold">
+                    {formatCurrency(Number(b.udhaarAmount))}
+                  </span>
                 </div>
               )}
             </div>
-
-            {b.cancelReason && (
-              <div className="mt-3 rounded-lg bg-red-50 border border-red-100 p-2.5 text-xs text-red-700">
-                <strong>Cancelled:</strong> {b.cancelReason}
-              </div>
-            )}
-            {b.notes && (
-              <div className="mt-3 rounded-lg bg-muted/40 p-2.5 text-xs text-muted-foreground">
-                <strong>Note:</strong> {b.notes}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Line Items */}
-        <Card className="shadow-sm">
-          <CardContent className="p-0">
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <h3 className="font-semibold text-sm">Items ({items.length})</h3>
-            </div>
-            <div className="divide-y divide-muted/40">
-              {items.map((item: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between px-4 py-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-tight">{item.productName}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {Number(item.quantity)} × {formatCurrency(Number(item.unitPrice))}
-                      {Number(item.discountAmount) > 0 && (
-                        <span className="text-amber-600"> − {formatCurrency(Number(item.discountAmount))} disc</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0 ml-3">
-                    <p className="font-semibold text-sm">{formatCurrency(Number(item.totalPrice))}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Totals */}
-            <div className="border-t border-muted/50 px-4 py-3 space-y-1.5">
-              {discount > 0 && (
-                <>
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Subtotal</span>
-                    <span>{formatCurrency(totalAmt)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-amber-700">
-                    <span>Discount</span>
-                    <span>−{formatCurrency(discount)}</span>
-                  </div>
-                </>
-              )}
-              <div className="flex justify-between font-bold text-base pt-1 border-t border-muted/40">
-                <span>Total</span>
-                <span>{formatCurrency(finalAmt)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Actions */}
-        <div className="flex gap-3">
-          <Button variant="outline" className="flex-1 h-12 gap-2 rounded-xl font-semibold" onClick={handlePrint}>
-            <Printer className="w-4 h-4" />
-            Print
-          </Button>
-          <Button variant="outline" className="flex-1 h-12 gap-2 rounded-xl font-semibold" onClick={handleDownload}>
-            <Download className="w-4 h-4" />
-            Download
-          </Button>
-          <Button variant="outline" className="flex-1 h-12 gap-2 rounded-xl font-semibold" onClick={() => setShareOpen(true)}>
-            <Share2 className="w-4 h-4" />
-            Share
-          </Button>
+          </div>
+          
+          {/* Bottom receipt edge pattern can be faked with border */}
         </div>
       </div>
 
-      {shareOpen && (
-        <ShareSheet bill={b} storeName={storeName} onClose={() => setShareOpen(false)} />
-      )}
+      {/* Sticky bottom action bar */}
+      <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 p-4 z-50">
+        <div className="flex gap-3">
+          <button 
+            className="flex-1 flex flex-col items-center justify-center gap-1.5 h-16 rounded-2xl border border-slate-300 bg-white hover:bg-slate-50 active-elevate transition-colors text-slate-700"
+            onClick={handleShare}>
+            <Share2 className="w-5 h-5" /> 
+            <span className="text-xs font-bold">Share</span>
+          </button>
+          <button 
+            className="flex-1 flex flex-col items-center justify-center gap-1.5 h-16 rounded-2xl border border-slate-300 bg-white hover:bg-slate-50 active-elevate transition-colors text-slate-700"
+            onClick={handlePrint}
+            disabled={isPrinting}>
+            <Printer className="w-5 h-5" /> 
+            <span className="text-xs font-bold">{isPrinting ? "Printing..." : "Reprint"}</span>
+          </button>
+          <button 
+            className="flex-[1.2] flex flex-col items-center justify-center gap-1.5 h-16 rounded-2xl border border-primary/20 bg-primary/10 hover:bg-primary/20 active-elevate transition-colors text-primary"
+            onClick={() => toast({ title: "Coming soon", description: "Return items feature will be available shortly." })}>
+            <ArrowLeft className="w-5 h-5 -scale-x-100" /> {/* Flip arrow to look like return */}
+            <span className="text-xs font-bold">Return</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
